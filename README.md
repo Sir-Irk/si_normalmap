@@ -1,7 +1,7 @@
 # si_normalmap
 Simple Single Header Normal Map Generator
 
-## WORK IN PROGRESS. DO NOT USE(YET)
+## WORK IN PROGRESS. USE AT OWN RISK
 
 A very simple normal map generator written as a single header library. 
 
