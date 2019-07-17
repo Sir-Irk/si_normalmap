@@ -17,7 +17,7 @@
 #include <stdint.h>
 
 #ifndef SINM_DEF
-#ifdef SINM_STATIC
+#ifdef SI_NORMALMAP_STATIC
 #define SINM_DEF static
 #else
 #define SINM_DEF extern
