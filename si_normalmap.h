@@ -31,7 +31,7 @@
     #define sinm_inline
     #endif
 #else
-    #define snmp_inline __forceinline
+    #define sinm_inline __forceinline
 #endif
 
 #ifndef SI_NORMALMAP_IMPLEMENTATION
