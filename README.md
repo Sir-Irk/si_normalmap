@@ -14,7 +14,11 @@ Possible features to add
  - Filtering options for normal map generation (ie: 3x3 sobel, etc)
  - Blurring functionality. But most likely this will be made in a seperate library. I'd prefer to keep this simple.
 
-Basic example:
+### Ouput example(texture from opengameart.org):
+
+![input](https://imgur.com/Grx9Uvs.png) ![output](https://imgur.com/SWFhlh7.png)
+
+### Basic Usage:
 ```C
 #define SI_NORMALMAP_IMPLEMENTATION
 #include "si_normalmap.h"
