@@ -4,6 +4,9 @@
  * Sir Irk's normal map generator
  *
  * Basic use:
+ *     #define SI_NORMALMAP_IMPLEMENTATION before including this file to get
+        the implementation. Otherwise this acts as a regualr header file
+        
  *     ...load your pixels to a buffer and convert to greyscale
  *     sinm_greyscale(inBuffer, pixelCount, greyscaleConversionType);
  *
@@ -11,6 +14,10 @@
  *     sinm_normal_map(inBuffer, outBuffer, w, h, scale);
  *
  *     ...write output buffer to a file
+ *
+ *  Other defines you can use(before including this file):
+ *  #define SI_NORMALMAP_USE_SIMD for SSE/AVX
+ *  #define SI_NORMALMAP_STATIC for static defintions(no extern functions)
  ***************************************************************************/
 
 
