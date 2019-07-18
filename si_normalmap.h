@@ -50,7 +50,6 @@ SINM_DEF void sinm_normal_map(const uint32_t *inBuffer, uint32_t *outBuffer, int
 
 #ifdef SI_NORMALMAP_USE_SIMD
 
-#include <assert.h>
 #include <intrin.h> 
 #include <emmintrin.h> 
 
