@@ -50,6 +50,7 @@ SINM_DEF void sinm_normal_map(const uint32_t *inBuffer, uint32_t *outBuffer, int
 
 #ifdef SI_NORMALMAP_USE_SIMD
 
+#include <assert.h>
 #include <intrin.h> 
 #include <emmintrin.h> 
 
@@ -296,7 +297,9 @@ SINM_DEF void
 sinm_greyscale(uint32_t *buffer, int32_t count, sinm_greyscale_type type)
 {
 #ifdef SI_NORMALMAP_USE_SIMD
-    sinm__simd_greyscale(buffer, count, type);
+    if(count > 0 && count % SINM_SIMD_INCREMENT == 0) { 
+        sinm__simd_greyscale(buffer, count, type);
+    } 
 #else
     sinm__greyscale(buffer, count, type);
 #endif
