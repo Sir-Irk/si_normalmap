@@ -39,6 +39,9 @@
     #define sinm_inline __forceinline
 #endif
 
+#define sinm__min(a, b) ((a) < (b) ? (a) : (b))
+#define sinm__max(a, b) ((a) > (b) ? (a) : (b))
+
 typedef enum
 {
     sinm_greyscale_none,
@@ -138,12 +141,6 @@ sinm__length(float x, float y, float z)
     return sqrtf(x*x + y*y + z*z);
 }
 
-sinm_inline static float 
-sinm__linearize_srgb(float value)
-{
-    return value*value;
-}
-
 sinm_inline static sinm__v3 
 sinm__normalized(float x, float y, float z) 
 {
@@ -165,7 +162,7 @@ sinm__normalized(float x, float y, float z)
 sinm_inline static uint32_t 
 sinm__lightness_average(uint32_t r, uint32_t g, uint32_t b)
 {
-    return (max(max(r, g), b)+min(min(r, g), b))/2;
+    return (sinm__max(sinm__max(r, g), b)+sinm__min(sinm__min(r, g), b))/2;
 }
 
 sinm_inline static uint32_t 
@@ -198,11 +195,12 @@ sinm__generate_gaussian_box(uint32_t n, double sigma)
     double mIdeal = (12.0*sigma*sigma - n*wl*wl - 4*n*wl - 3*n)/(-4*wl - 4);
     double m = round(mIdeal);
 
-    double *boxes = malloc(n*sizeof(double));
+    double *boxes = (double *)malloc(n*sizeof(double));
     for(int i = 0; i < n; ++i) boxes[i] = (i < m) ? wl : wu;
     return boxes;
 }
 
+//NOTE: decently optimized box blur based on http://blog.ivank.net/fastest-gaussian-blur.html
 SINM_DEF void 
 sinm__box_blur_h(uint32_t *in, uint32_t *out, int32_t w, int32_t h, int32_t r)
 {
@@ -308,8 +306,8 @@ sinm__sobel3x3_normals(const uint32_t *in, uint32_t *out, int32_t w, int32_t h, 
 
             for(int32_t a = 0; a < 3; ++a) {
                 for(int32_t b = 0; b < 3; ++b) {
-                    int32_t xIdx = min(w-1, max(1, x+b-1));
-                    int32_t yIdx = min(h-1, max(1, y+a-1));
+                    int32_t xIdx = sinm__min(w-1, sinm__max(1, x+b-1));
+                    int32_t yIdx = sinm__min(h-1, sinm__max(1, y+a-1));
                     int32_t index = yIdx*w+xIdx;
                     uint32_t pixel = in[index] & 0xFFu;
                     xmag += pixel*xk[a][b];
@@ -436,17 +434,17 @@ sinm__simd_greyscale(const uint32_t *in, uint32_t *out, int32_t w, int32_t h, si
         } break;
     }
 }
-#endif //SI_NORMALMAP_NO_SIMD
+#endif //SI_NORMALMAP_USE_SIMD
 
 SINM_DEF int
 sinm_greyscale(const uint32_t *in, uint32_t *out, int32_t w, int32_t h, sinm_greyscale_type type)
 {
-    int32_t count = w*h;
 #ifndef SI_NORMALMAP_NO_SIMD
+    int32_t count = w*h;
     if(count > 0 && count % SINM_SIMD_INCREMENT == 0) { 
         sinm__simd_greyscale(in, out, w, h, type);
     } else {
-         sinm__greyscale(in, out, w, h, type);
+        sinm__greyscale(in, out, w, h, type);
     }
 #else
     sinm__greyscale(in, out, w, h, type);
@@ -461,10 +459,10 @@ sinm_normal_map(const uint32_t *in, int32_t w, int32_t h, float scale, float blu
 
     //Intermediate buffer for processing so we don't have to change the input buffer
     int shouldFreeIntermediate = 0;
-    uint32_t *intermediate = malloc(w*h*sizeof(uint32_t));
+    uint32_t *intermediate = (uint32_t *)malloc(w*h*sizeof(uint32_t));
     if(!intermediate) return NULL;
 
-    uint32_t *result = malloc(w*h*sizeof(uint32_t));
+    uint32_t *result = (uint32_t *)malloc(w*h*sizeof(uint32_t));
     if(result) {
         if(greyscaleType != sinm_greyscale_none) {
             sinm_greyscale(in, result, w, h, greyscaleType);
@@ -472,7 +470,7 @@ sinm_normal_map(const uint32_t *in, int32_t w, int32_t h, float scale, float blu
             memcpy(result, in, w*h*sizeof(uint32_t));
         }
 
-        float radius = min(min(w,h), max(0, blurRadius));
+        float radius = sinm__min(sinm__min(w,h), sinm__max(0, blurRadius));
         sinm__gaussian_box(result, intermediate, w, h, radius);
         sinm__sobel3x3_normals(intermediate, result, w, h, scale);
     }
@@ -480,25 +478,4 @@ sinm_normal_map(const uint32_t *in, int32_t w, int32_t h, float scale, float blu
     free(intermediate);
     return result;
 }
-
-
-#endif //ifndef SI_NORMALMAP_IMPLEMENTATION
-/*
-Copyright (c) 2019 Jeremy Montgomery
-Permission is hereby granted, free of charge, to any person obtaining a copy of 
-this software and associated documentation files (the "Software"), to deal in 
-the Software without restriction, including without limitation the rights to 
-use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies 
-of the Software, and to permit persons to whom the Software is furnished to do 
-so, subject to the following conditions:
-The above copyright notice and this permission notice shall be included in all 
-copies or substantial portions of the Software.
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR 
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, 
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE 
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER 
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, 
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE 
-SOFTWARE.
-*/
 
