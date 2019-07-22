@@ -26,7 +26,7 @@ Comparison of lighting without and with normal map(and a second "detail" normal 
 
 ### Available functions
 ```C
-void sinm_greyscale(uint32_t *buffer, int32_t count, sinm_greyscale_type type);
+void sinm_greyscale(const uint32_t *in, uint32_t *out, int32_t w, int32_t h, sinm_greyscale_type type);
 uint32_t *sinm_normal_map(const uint32_t *in, int32_t w, int32_t h, float scale, float blurRadius, sinm_greyscale_type greyscaleType);
 ```
 
