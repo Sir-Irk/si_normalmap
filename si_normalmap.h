@@ -357,7 +357,7 @@ sinm__greyscale(const uint32_t *in, uint32_t *out, int32_t w, int32_t h, sinm_gr
     }
 }
 
-#ifdef SI_NORMALMAP_USE_SIMD
+#ifndef SI_NORMALMAP_NO_SIMD
 static void
 sinm__simd_greyscale(const uint32_t *in, uint32_t *out, int32_t w, int32_t h, sinm_greyscale_type type)
 {
@@ -436,17 +436,17 @@ sinm__simd_greyscale(const uint32_t *in, uint32_t *out, int32_t w, int32_t h, si
         } break;
     }
 }
-#endif //SI_NORMALMAP_USE_SIMD
+#endif //SI_NORMALMAP_NO_SIMD
 
 SINM_DEF int
 sinm_greyscale(const uint32_t *in, uint32_t *out, int32_t w, int32_t h, sinm_greyscale_type type)
 {
     int32_t count = w*h;
-#ifdef SI_NORMALMAP_USE_SIMD
+#ifndef SI_NORMALMAP_NO_SIMD
     if(count > 0 && count % SINM_SIMD_INCREMENT == 0) { 
         sinm__simd_greyscale(in, out, w, h, type);
     } else {
-        return 0;
+         sinm__greyscale(in, out, w, h, type);
     }
 #else
     sinm__greyscale(in, out, w, h, type);
