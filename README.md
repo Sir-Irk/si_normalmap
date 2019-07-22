@@ -1,14 +1,10 @@
 # si_normalmap
 A very simple normal map generator written as a single header library. 
 
-## WORK IN PROGRESS. USE AT OWN RISK
-
 Features:
  - Convert color buffer to greyscale using either lightness, average or luminance methods(with SSE/AVX versions available)
  - Convert greyscale buffer to a normal map with gaussian blur pre-filtering
  
-Possible Todo(s):
- - SIMD optimization of normal map generation and gaussian blur
 
 ### Example(texture from opengameart.org):
 
