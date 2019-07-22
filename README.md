@@ -24,7 +24,7 @@ Comparison of lighting without and with normal map(and a second "detail" normal 
 
 ![lighting](https://imgur.com/CIw2oFB.png)
 
-### Available functions
+### Interface
 ```C
 typedef enum
 {
