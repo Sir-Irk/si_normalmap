@@ -39,9 +39,8 @@
     #define sinm_inline __forceinline
 #endif
 
-#define sinm__min(a, b) ((a) < (b) ? (a) : (b))
-#define sinm__max(a, b) ((a) > (b) ? (a) : (b))
-
+#ifndef SINM_GREYSCALE_TYPE
+#define SINM_GREYSCALE_TYPE
 typedef enum
 {
     sinm_greyscale_none,
@@ -50,8 +49,10 @@ typedef enum
     sinm_greyscale_luminance,
     sinm_greyscale_count,
 } sinm_greyscale_type;
+#endif
 
 #ifndef SI_NORMALMAP_IMPLEMENTATION
+
 SINM_DEF void sinm_greyscale(const uint32_t *in, uint32_t *out, int32_t w, int32_t h, sinm_greyscale_type type);
 //Converts values in "buffer" to greyscale  using either the
 //lightness, average or luminance methods
@@ -124,6 +125,9 @@ SINM_DEF uint32_t *sinm_normal_map(const uint32_t *in, int32_t w, int32_t h, flo
 #endif //AVX_AVAILABLE
 #endif //SI_NORMALMAP_NO_SIMD
 
+#define sinm__min(a, b) ((a) < (b) ? (a) : (b))
+#define sinm__max(a, b) ((a) > (b) ? (a) : (b))
+
 typedef struct 
 {
     int32_t x, y;
@@ -133,7 +137,6 @@ typedef struct
 {
     float x,y,z;
 } sinm__v3;
-
 
 sinm_inline static float 
 sinm__length(float x, float y, float z) 
@@ -281,7 +284,6 @@ sinm__gaussian_box(uint32_t *in, uint32_t *out, int32_t w, int32_t h, float r)
 
     memcpy(out, in, w*h*sizeof(uint32_t));
 }
-
 
 SINM_DEF void 
 sinm__sobel3x3_normals(const uint32_t *in, uint32_t *out, int32_t w, int32_t h, float scale)
@@ -436,7 +438,7 @@ sinm__simd_greyscale(const uint32_t *in, uint32_t *out, int32_t w, int32_t h, si
 }
 #endif //SI_NORMALMAP_NO_SIMD
 
-SINM_DEF int
+SINM_DEF void
 sinm_greyscale(const uint32_t *in, uint32_t *out, int32_t w, int32_t h, sinm_greyscale_type type)
 {
 #ifndef SI_NORMALMAP_NO_SIMD
@@ -449,20 +451,16 @@ sinm_greyscale(const uint32_t *in, uint32_t *out, int32_t w, int32_t h, sinm_gre
 #else
     sinm__greyscale(in, out, w, h, type);
 #endif
-    return 1;
 }
 
 SINM_DEF uint32_t *
 sinm_normal_map(const uint32_t *in, int32_t w, int32_t h, float scale, float blurRadius, sinm_greyscale_type greyscaleType)
 {
-    if(!in) return NULL;
-
-    //Intermediate buffer for processing so we don't have to change the input buffer
-    int shouldFreeIntermediate = 0;
     uint32_t *intermediate = (uint32_t *)malloc(w*h*sizeof(uint32_t));
     if(!intermediate) return NULL;
 
     uint32_t *result = (uint32_t *)malloc(w*h*sizeof(uint32_t));
+
     if(result) {
         if(greyscaleType != sinm_greyscale_none) {
             sinm_greyscale(in, result, w, h, greyscaleType);
@@ -478,7 +476,6 @@ sinm_normal_map(const uint32_t *in, int32_t w, int32_t h, float scale, float blu
     free(intermediate);
     return result;
 }
-
 
 #endif //ifndef SI_NORMALMAP_IMPLEMENTATION
 /*
