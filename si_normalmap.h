@@ -184,25 +184,25 @@ sinm__greyscale_from_byte(uint8_t c)
     return (c | c << 8u | c << 16u | 255u << 24u);  
 }
 
-SINM_DEF double *
-sinm__generate_gaussian_box(uint32_t n, double sigma)
+SINM_DEF void
+sinm__generate_gaussian_box(float *outBoxes, int32_t n, float sigma)
 {
-    double wIdeal = sqrt((12.0*sigma*sigma/n)+1);
-    double wl = floor(wIdeal);
-    if((int64_t)wl%2 == 0) --wl;
-    double wu = wl+2;
+    float wIdeal = sqrtf((12.0f*sigma*sigma/n)+1.0f);
+    int32_t wl = floorf(wIdeal);
+    if(wl%2 == 0) --wl;
+    int32_t wu = wl+2;
 
-    double mIdeal = (12.0*sigma*sigma - n*wl*wl - 4*n*wl - 3*n)/(-4*wl - 4);
-    double m = round(mIdeal);
+    float mIdeal = (12.0f*sigma*sigma - n*wl*wl - 4.0f*n*wl - 3.0f*n)/(-4.0f*wl - 4.0f);
+    int32_t m = roundf(mIdeal);
 
-    double *boxes = (double *)malloc(n*sizeof(double));
-    for(int i = 0; i < n; ++i) boxes[i] = (i < m) ? wl : wu;
-    return boxes;
+    for(int i = 0; i < n; ++i) {
+        outBoxes[i] = (i < m) ? wl : wu;
+    }
 }
 
 //NOTE: decently optimized box blur based on http://blog.ivank.net/fastest-gaussian-blur.html
 SINM_DEF void 
-sinm__box_blur_h(uint32_t *in, uint32_t *out, int32_t w, int32_t h, int32_t r)
+sinm__box_blur_h(uint32_t *in, uint32_t *out, int32_t w, int32_t h, float r)
 {
     float invR = 1.0f/(r+r+1);
     for(int i = 0; i < h; ++i) {
@@ -269,17 +269,17 @@ sinm__box_blur_v(uint32_t *in, uint32_t *out, int32_t w, int32_t h, float r)
 SINM_DEF void 
 sinm__gaussian_box(uint32_t *in, uint32_t *out, int32_t w, int32_t h, float r)
 {
-    double *boxes = sinm__generate_gaussian_box(3, r);
-    if(boxes) {
-        sinm__box_blur_h(in, out, w, h, (boxes[0]-1)/2);
-        sinm__box_blur_v(out, in, w, h, (boxes[0]-1)/2);
-        sinm__box_blur_h(in, out, w, h, (boxes[1]-1)/2);
-        sinm__box_blur_v(out, in, w, h, (boxes[1]-1)/2);
-        sinm__box_blur_h(in, out, w, h, (boxes[2]-1)/2);
-        sinm__box_blur_v(out, in, w, h, (boxes[2]-1)/2);
-        memcpy(out, in, w*h*sizeof(uint32_t));
-        free(boxes);
-    }
+    float boxes[3];
+    sinm__generate_gaussian_box(boxes, sizeof(boxes)/sizeof(boxes[0]), r);
+
+    sinm__box_blur_h(in, out, w, h, (boxes[0]-1)/2);
+    sinm__box_blur_v(out, in, w, h, (boxes[0]-1)/2);
+    sinm__box_blur_h(in, out, w, h, (boxes[1]-1)/2);
+    sinm__box_blur_v(out, in, w, h, (boxes[1]-1)/2);
+    sinm__box_blur_h(in, out, w, h, (boxes[2]-1)/2);
+    sinm__box_blur_v(out, in, w, h, (boxes[2]-1)/2);
+
+    memcpy(out, in, w*h*sizeof(uint32_t));
 }
 
 
@@ -434,7 +434,7 @@ sinm__simd_greyscale(const uint32_t *in, uint32_t *out, int32_t w, int32_t h, si
         } break;
     }
 }
-#endif //SI_NORMALMAP_USE_SIMD
+#endif //SI_NORMALMAP_NO_SIMD
 
 SINM_DEF int
 sinm_greyscale(const uint32_t *in, uint32_t *out, int32_t w, int32_t h, sinm_greyscale_type type)
@@ -478,4 +478,25 @@ sinm_normal_map(const uint32_t *in, int32_t w, int32_t h, float scale, float blu
     free(intermediate);
     return result;
 }
+
+
+#endif //ifndef SI_NORMALMAP_IMPLEMENTATION
+/*
+Copyright (c) 2019 Jeremy Montgomery
+Permission is hereby granted, free of charge, to any person obtaining a copy of 
+this software and associated documentation files (the "Software"), to deal in 
+the Software without restriction, including without limitation the rights to 
+use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies 
+of the Software, and to permit persons to whom the Software is furnished to do 
+so, subject to the following conditions:
+The above copyright notice and this permission notice shall be included in all 
+copies or substantial portions of the Software.
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR 
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, 
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE 
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER 
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, 
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE 
+SOFTWARE.
+*/
 
