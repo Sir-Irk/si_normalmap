@@ -644,7 +644,7 @@ sinm_normal_map_buffer(const uint32_t *in, uint32_t *out, int32_t w, int32_t h, 
         } else {
             memcpy(intermediate, out, w*h*sizeof(uint32_t));
         }
-#ifndef SI_NORMALMAP_IMPLEMENTATION
+#ifdef SI_NORMALMAP_NO_SIMD
             sinm__sobel3x3_normals(intermediate, out, w, h, scale, flipY);
 #else
             sinm__sobel3x3_normals_simd(intermediate, out, w, h, scale, flipY);
