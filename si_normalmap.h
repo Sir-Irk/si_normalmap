@@ -40,9 +40,9 @@
 #endif
 
 #ifdef _MSC_VER
-	#define sinm__aligned_var(type, bytes) __declspec(align(bytes)) type
+    #define sinm__aligned_var(type, bytes) __declspec(align(bytes)) type
 #else
-	#define sinm__aligned_var(type, bytes) type __attribute__((aligned(bytes)))
+    #define sinm__aligned_var(type, bytes) type __attribute__((aligned(bytes)))
 #endif
 
 #ifndef SINM_TYPES
@@ -183,7 +183,7 @@ sinm__length(float x, float y, float z)
 sinm__inline static simd__float 
 sinm__length_simd(simd__float x, simd__float y, simd__float z) 
 {
-	return simd__sqrt_ps(simd__add_ps(simd__add_ps(simd__mul_ps(x, x), simd__mul_ps(y, y)), simd__mul_ps(z, z)));
+    return simd__sqrt_ps(simd__add_ps(simd__add_ps(simd__mul_ps(x, x), simd__mul_ps(y, y)), simd__mul_ps(z, z)));
 }
 
 sinm__inline static sinm__v3 
@@ -232,45 +232,45 @@ sinm__greyscale_from_byte(uint8_t c)
 static sinm__inline sinm__v3
 sinm__rgba_to_v3(uint32_t c)
 {
-	sinm__v3 result = {
-		(float)((c >>  0) & 0xFFu)-127.0f,
-		(float)((c >>  8) & 0xFFu)-127.0f,
-		(float)((c >> 16) & 0xFFu)-127.0f
-	};
-	
-	return result;
+    sinm__v3 result = {
+        (float)((c >>  0) & 0xFFu)-127.0f,
+        (float)((c >>  8) & 0xFFu)-127.0f,
+        (float)((c >> 16) & 0xFFu)-127.0f
+    };
+    
+    return result;
 }
 
 static sinm__inline void
 sinm__rgba_to_v3_simd(simd__int c, simd__float *x, simd__float *y, simd__float *z)
 {
-	simd__int ff   = simd__set1_epi32(0xFF);
-	simd__int v127 = simd__set1_epi32(127);
-	*x = simd__cvtepi32_ps(simd__sub_epi32(simd__and_ix(simd__srli_epi32(c, 0) , ff), v127));
-	*y = simd__cvtepi32_ps(simd__sub_epi32(simd__and_ix(simd__srli_epi32(c, 8) , ff), v127));
-	*z = simd__cvtepi32_ps(simd__sub_epi32(simd__and_ix(simd__srli_epi32(c, 16), ff), v127));
+    simd__int ff   = simd__set1_epi32(0xFF);
+    simd__int v127 = simd__set1_epi32(127);
+    *x = simd__cvtepi32_ps(simd__sub_epi32(simd__and_ix(simd__srli_epi32(c, 0) , ff), v127));
+    *y = simd__cvtepi32_ps(simd__sub_epi32(simd__and_ix(simd__srli_epi32(c, 8) , ff), v127));
+    *z = simd__cvtepi32_ps(simd__sub_epi32(simd__and_ix(simd__srli_epi32(c, 16), ff), v127));
 }
 
 static sinm__inline uint32_t
 sinm__unit_vector_to_rgba(sinm__v3 v)
 {
-	uint32_t r = (uint32_t)((1.0f+v.x)*127.0f);
-	uint32_t g = (uint32_t)((1.0f+v.y)*127.0f);
-	uint32_t b = (uint32_t)((1.0f+v.z)*127.0f);
-	return r | g << 8u | b << 16u | 255u << 24u;
+    uint32_t r = (uint32_t)((1.0f+v.x)*127.0f);
+    uint32_t g = (uint32_t)((1.0f+v.y)*127.0f);
+    uint32_t b = (uint32_t)((1.0f+v.z)*127.0f);
+    return r | g << 8u | b << 16u | 255u << 24u;
 }
 
 static sinm__inline simd__int
 sinm__v3_to_rgba_simd(simd__float x, simd__float y, simd__float z)
 {
-	simd__float one = simd__set1_ps(1.0f);
-	simd__float v127 = simd__set1_ps(127.0f);
-	simd__int a = simd__set1_epi32(255u << 24u);
-	simd__int r = simd__cvtps_epi32(simd__mul_ps(simd__add_ps(one, x), v127));
-	simd__int g = simd__cvtps_epi32(simd__mul_ps(simd__add_ps(one, y), v127));
-	simd__int b = simd__cvtps_epi32(simd__mul_ps(simd__add_ps(one, z), v127));
-	simd__int c = simd__or_ix(simd__or_ix(simd__or_ix(r, simd__slli_epi32(g, 8)), simd__slli_epi32(b, 16)), a);
-	return c;
+    simd__float one = simd__set1_ps(1.0f);
+    simd__float v127 = simd__set1_ps(127.0f);
+    simd__int a = simd__set1_epi32(255u << 24u);
+    simd__int r = simd__cvtps_epi32(simd__mul_ps(simd__add_ps(one, x), v127));
+    simd__int g = simd__cvtps_epi32(simd__mul_ps(simd__add_ps(one, y), v127));
+    simd__int b = simd__cvtps_epi32(simd__mul_ps(simd__add_ps(one, z), v127));
+    simd__int c = simd__or_ix(simd__or_ix(simd__or_ix(r, simd__slli_epi32(g, 8)), simd__slli_epi32(b, 16)), a);
+    return c;
 }
 
 SINM_DEF void
@@ -391,14 +391,14 @@ sinm__sobel3x3_normals_row_range(const uint32_t *in, uint32_t *out, int32_t xs, 
             }
             sinm__v3 color = sinm__normalized(xmag*scale, ymag*scale, 255.0f);
             out[y*w+x] = sinm__unit_vector_to_rgba(color);
-		}
-	}
+        }
+    }
 }
 
 static sinm__inline void 
 sinm__sobel3x3_normals(const uint32_t *in, uint32_t *out, int32_t w, int32_t h, float scale, int flipY)
 {
-	sinm__sobel3x3_normals_row_range(in, out, 0, w, w, h, scale, flipY);
+    sinm__sobel3x3_normals_row_range(in, out, 0, w, w, h, scale, flipY);
 }
 
 static void
@@ -407,101 +407,101 @@ sinm__sobel3x3_normals_simd(const uint32_t *in, uint32_t *out, int32_t w, int32_
     const float xk[3][4] = { {-1,  0,  1,  0}, {-2,  0,  2,  0}, {-1,  0,  1,  0}, };
     const float yk[3][4] = { {-1, -2, -1,  0}, { 0,  0,  0,  0}, { 1,  2,  1,  0}, };
 
-	simd__float simdScale = simd__set1_ps(scale);
-	simd__float simdFlipY = simd__set1_ps((flipY) ? -1.0f : 1.0);
-	simd__float simd1     = simd__set1_ps(1.0f);
-	simd__float simd127   = simd__set1_ps(127.0f);
+    simd__float simdScale = simd__set1_ps(scale);
+    simd__float simdFlipY = simd__set1_ps((flipY) ? -1.0f : 1.0);
+    simd__float simd1     = simd__set1_ps(1.0f);
+    simd__float simd127   = simd__set1_ps(127.0f);
 
-	int batchCount = 0;
-	sinm__aligned_var(float, SINM_SIMD_INCREMENT) xBatch[SINM_SIMD_INCREMENT];
-	sinm__aligned_var(float, SINM_SIMD_INCREMENT) yBatch[SINM_SIMD_INCREMENT];
+    int batchCount = 0;
+    sinm__aligned_var(float, SINM_SIMD_INCREMENT) xBatch[SINM_SIMD_INCREMENT];
+    sinm__aligned_var(float, SINM_SIMD_INCREMENT) yBatch[SINM_SIMD_INCREMENT];
 
     for(int32_t yIter = 0; yIter < h; ++yIter) {
         for(int32_t xIter = SINM_SIMD_INCREMENT; xIter < w-SINM_SIMD_INCREMENT; ++xIter) {
-			__m128 xmag = _mm_set1_ps(0.0f);
-			__m128 ymag = _mm_set1_ps(0.0f);
+            __m128 xmag = _mm_set1_ps(0.0f);
+            __m128 ymag = _mm_set1_ps(0.0f);
 
             for(int32_t a = 0; a < 3; ++a) {
-				int32_t xIdx = sinm__min(w-1, sinm__max(1, xIter-1));
-				int32_t yIdx = sinm__min(h-1, sinm__max(1, yIter+a-1));
-				int32_t index = yIdx*w+xIdx;
+                int32_t xIdx = sinm__min(w-1, sinm__max(1, xIter-1));
+                int32_t yIdx = sinm__min(h-1, sinm__max(1, yIter+a-1));
+                int32_t index = yIdx*w+xIdx;
 
-				__m128i pixel = _mm_loadu_si128((__m128i *)&in[index]);
-				pixel  = _mm_and_si128(pixel, _mm_set1_epi32(0xFFu));
-				__m128 pixelf = _mm_cvtepi32_ps(pixel);
-				__m128 kx = _mm_loadu_ps((float *)&xk[a]);
-				__m128 ky = _mm_loadu_ps((float *)&yk[a]);
-				xmag = _mm_add_ps(_mm_mul_ps(pixelf, kx), xmag);
-				ymag = _mm_add_ps(_mm_mul_ps(pixelf, ky), ymag);
-			}
+                __m128i pixel = _mm_loadu_si128((__m128i *)&in[index]);
+                pixel  = _mm_and_si128(pixel, _mm_set1_epi32(0xFFu));
+                __m128 pixelf = _mm_cvtepi32_ps(pixel);
+                __m128 kx = _mm_loadu_ps((float *)&xk[a]);
+                __m128 ky = _mm_loadu_ps((float *)&yk[a]);
+                xmag = _mm_add_ps(_mm_mul_ps(pixelf, kx), xmag);
+                ymag = _mm_add_ps(_mm_mul_ps(pixelf, ky), ymag);
+            }
 
-			__m128 xSum = _mm_hadd_ps(xmag, xmag);
-			__m128 ySum = _mm_hadd_ps(ymag, ymag);
-			float xn = _mm_cvtss_f32(_mm_hadd_ps(xSum, xSum));
-			float yn = _mm_cvtss_f32(_mm_hadd_ps(ySum, ySum));
+            __m128 xSum = _mm_hadd_ps(xmag, xmag);
+            __m128 ySum = _mm_hadd_ps(ymag, ymag);
+            float xn = _mm_cvtss_f32(_mm_hadd_ps(xSum, xSum));
+            float yn = _mm_cvtss_f32(_mm_hadd_ps(ySum, ySum));
 
-			xBatch[batchCount] = xn;
-			yBatch[batchCount++] = yn;
-			if(batchCount == SINM_SIMD_INCREMENT) {
-				batchCount = 0;
-				simd__float x = simd__loadu_ps(xBatch);
-				simd__float y = simd__loadu_ps(yBatch);
-				simd__float z = simd__set1_ps(255.0f);
-				simd__float len = sinm__length_simd(x, y, z);
-				simd__float invLen = simd__div_ps(simd__set1_ps(1.0f), len);
-				simd__float mask = simd__cmp_ps(simd__setzero_ps(), len, _CMP_EQ_OQ);                                      
-				x = simd__andnot_ps(mask, simd__mul_ps(x, invLen));                                                                
-				y = simd__andnot_ps(mask, simd__mul_ps(y, invLen));                                                                
-				z = simd__andnot_ps(mask, simd__mul_ps(z, invLen));                        
-				int index = yIter*w+(xIter-(SINM_SIMD_INCREMENT-1));
-				simd__storeu_ix((simd__int *)&out[index], sinm__v3_to_rgba_simd(x, y, z));
-			}
-		}
-	}
+            xBatch[batchCount] = xn;
+            yBatch[batchCount++] = yn;
+            if(batchCount == SINM_SIMD_INCREMENT) {
+                batchCount = 0;
+                simd__float x = simd__loadu_ps(xBatch);
+                simd__float y = simd__loadu_ps(yBatch);
+                simd__float z = simd__set1_ps(255.0f);
+                simd__float len = sinm__length_simd(x, y, z);
+                simd__float invLen = simd__div_ps(simd__set1_ps(1.0f), len);
+                simd__float mask = simd__cmp_ps(simd__setzero_ps(), len, _CMP_EQ_OQ);                                      
+                x = simd__andnot_ps(mask, simd__mul_ps(x, invLen));                                                                
+                y = simd__andnot_ps(mask, simd__mul_ps(y, invLen));                                                                
+                z = simd__andnot_ps(mask, simd__mul_ps(z, invLen));                        
+                int index = yIter*w+(xIter-(SINM_SIMD_INCREMENT-1));
+                simd__storeu_ix((simd__int *)&out[index], sinm__v3_to_rgba_simd(x, y, z));
+            }
+        }
+    }
 
-	sinm__sobel3x3_normals_row_range(in, out, 0, SINM_SIMD_INCREMENT, w, h, scale, flipY);
-	sinm__sobel3x3_normals_row_range(in, out, w-SINM_SIMD_INCREMENT, w, w, h, scale, flipY);
+    sinm__sobel3x3_normals_row_range(in, out, 0, SINM_SIMD_INCREMENT, w, h, scale, flipY);
+    sinm__sobel3x3_normals_row_range(in, out, w-SINM_SIMD_INCREMENT, w, w, h, scale, flipY);
 }
 
 SINM_DEF void
 sinm_normalize(uint32_t *in, int32_t w, int32_t h, float scale, int flipY)
 {
-	float invScale = 1.0f/scale;
-	float yDir = (flipY) ? -1.0f : 1.0f;
-	for(int32_t i = 0; i < w*h; ++i) {
-		sinm__v3 v = sinm__rgba_to_v3(in[i]);
-		in[i] = sinm__unit_vector_to_rgba(sinm__normalized(v.x, v.y*yDir, v.z*invScale));
-	}
+    float invScale = 1.0f/scale;
+    float yDir = (flipY) ? -1.0f : 1.0f;
+    for(int32_t i = 0; i < w*h; ++i) {
+        sinm__v3 v = sinm__rgba_to_v3(in[i]);
+        in[i] = sinm__unit_vector_to_rgba(sinm__normalized(v.x, v.y*yDir, v.z*invScale));
+    }
 }
 
 SINM_DEF void
 sinm__normalize_simd(uint32_t *in, int32_t w, int32_t h, float scale, int flipY)
 {
-	assert(w % SINM_SIMD_INCREMENT == 0);
-	for(int32_t i = 0; i < w*h; i += SINM_SIMD_INCREMENT) {
-		simd__int pixel = simd__loadu_ix((simd__int *)&in[i]);
-		simd__float x, y, z;
-		sinm__rgba_to_v3_simd(pixel, &x, &y, &z);
-		simd__float len = sinm__length_simd(x, y, z);
-		simd__float invLen = simd__div_ps(simd__set1_ps(1.0f), len);
+    assert(w % SINM_SIMD_INCREMENT == 0);
+    for(int32_t i = 0; i < w*h; i += SINM_SIMD_INCREMENT) {
+        simd__int pixel = simd__loadu_ix((simd__int *)&in[i]);
+        simd__float x, y, z;
+        sinm__rgba_to_v3_simd(pixel, &x, &y, &z);
+        simd__float len = sinm__length_simd(x, y, z);
+        simd__float invLen = simd__div_ps(simd__set1_ps(1.0f), len);
         simd__float mask = simd__cmp_ps(simd__setzero_ps(), len, _CMP_EQ_OQ);                                      
         x = simd__andnot_ps(mask, simd__mul_ps(x, invLen));                                                                
         y = simd__andnot_ps(mask, simd__mul_ps(y, invLen));                                                                
         z = simd__andnot_ps(mask, simd__mul_ps(z, invLen));                        
-		simd__storeu_ix((simd__int *)&in[i], sinm__v3_to_rgba_simd(x, y, z));
-	}
+        simd__storeu_ix((simd__int *)&in[i], sinm__v3_to_rgba_simd(x, y, z));
+    }
 }
 
 SINM_DEF void
 sinm_composite(const uint32_t *in, uint32_t *out, int32_t w, int32_t h)
 {
-	for(int32_t i = 0; i < w*h; ++i) {
-		uint32_t ic = in[i], oc = out[i];
-		uint32_t r = (uint32_t)((((ic >> 0 ) & 0xFFu) + ((oc >> 0 ) & 0xFFu)) * 0.5f);
-		uint32_t g = (uint32_t)((((ic >> 8 ) & 0xFFu) + ((oc >> 8 ) & 0xFFu)) * 0.5f); 
-		uint32_t b = (uint32_t)((((ic >> 16) & 0xFFu) + ((oc >> 16) & 0xFFu)) * 0.5f); 
-		out[i] = (r | g << 8u | b << 16u | 255u << 24u);
-	}
+    for(int32_t i = 0; i < w*h; ++i) {
+        uint32_t ic = in[i], oc = out[i];
+        uint32_t r = (uint32_t)((((ic >> 0 ) & 0xFFu) + ((oc >> 0 ) & 0xFFu)) * 0.5f);
+        uint32_t g = (uint32_t)((((ic >> 8 ) & 0xFFu) + ((oc >> 8 ) & 0xFFu)) * 0.5f); 
+        uint32_t b = (uint32_t)((((ic >> 16) & 0xFFu) + ((oc >> 16) & 0xFFu)) * 0.5f); 
+        out[i] = (r | g << 8u | b << 16u | 255u << 24u);
+    }
 }
 
 static void
@@ -631,29 +631,29 @@ sinm_normal_map_buffer(const uint32_t *in, uint32_t *out, int32_t w, int32_t h, 
 {
     uint32_t *intermediate = (uint32_t *)malloc(w*h*sizeof(uint32_t));
 
-	if(intermediate) {
-		if(greyscaleType != sinm_greyscale_none) {
-			sinm_greyscale(in, out, w, h, greyscaleType);
-		} else {
-			memcpy(out, in, w*h*sizeof(uint32_t));
-		}
+    if(intermediate) {
+        if(greyscaleType != sinm_greyscale_none) {
+            sinm_greyscale(in, out, w, h, greyscaleType);
+        } else {
+            memcpy(out, in, w*h*sizeof(uint32_t));
+        }
 
-		float radius = sinm__min(sinm__min(w,h), sinm__max(0, blurRadius));
-		if(radius >= 1.0f) {
-			sinm__gaussian_box(out, intermediate, w, h, radius);
-		} else {
-			memcpy(intermediate, out, w*h*sizeof(uint32_t));
-		}
+        float radius = sinm__min(sinm__min(w,h), sinm__max(0, blurRadius));
+        if(radius >= 1.0f) {
+            sinm__gaussian_box(out, intermediate, w, h, radius);
+        } else {
+            memcpy(intermediate, out, w*h*sizeof(uint32_t));
+        }
 #ifndef SI_NORMALMAP_IMPLEMENTATION
-			sinm__sobel3x3_normals(intermediate, out, w, h, scale, flipY);
+            sinm__sobel3x3_normals(intermediate, out, w, h, scale, flipY);
 #else
-			sinm__sobel3x3_normals_simd(intermediate, out, w, h, scale, flipY);
+            sinm__sobel3x3_normals_simd(intermediate, out, w, h, scale, flipY);
 #endif
-		}
-		free(intermediate);
-		return 1;
-	}
-	return 0;
+        }
+        free(intermediate);
+        return 1;
+    }
+    return 0;
 }
 
 SINM_DEF uint32_t *
@@ -668,33 +668,33 @@ sinm_normal_map(const uint32_t *in, int32_t w, int32_t h, float scale, float blu
 //NOTE: returns RGB or RGBA depending on input
 SINM_DEF uint8_t *
 sinm__normal_map_u8(const uint8_t *in, uint32_t w, int32_t h, float scale, float blurRadius, 
-		            sinm_greyscale_type greyscaleType, int flipY, uint32_t numChannels)
+                    sinm_greyscale_type greyscaleType, int flipY, uint32_t numChannels)
 {
-	if(numChannels > 4 || numChannels == 0) return NULL;
+    if(numChannels > 4 || numChannels == 0) return NULL;
 
-	if(numChannels == 4) {
-		return (uint8_t *)sinm__normal_map((uint32_t *)in, w, h, scale, blurRadius, greyscaleType, flipY);
-	}
+    if(numChannels == 4) {
+        return (uint8_t *)sinm__normal_map((uint32_t *)in, w, h, scale, blurRadius, greyscaleType, flipY);
+    }
 
-	size_t sizeInBytes = w*h*sizeof(uint32_t);
+    size_t sizeInBytes = w*h*sizeof(uint32_t);
     uint32_t *intermediate = (uint32_t *)malloc(w*h*sizeof(uint32_t));
     if(!intermediate) return NULL;
     uint32_t *result = (uint32_t *)malloc(w*h*sizeof(uint32_t));
 
-	switch(numChannels) {
-		case 3 : { 
-			for(int i = 0 i < w*h; ++i) {
-				int idx = numChannels*i;
-				result[i] = (in[idx] | in[idx+1] << 8u | in[idx+2] << 16u | 255u << 24u);
-			}
-		} break;
-		case 1 : { 
-			for(int i = 0 i < w*h; ++i) {
-				int idx = numChannels*i;
-				result[i] = sinm__greyscale_from_byte(in[idx]);
-			}
-		}
-	}
+    switch(numChannels) {
+        case 3 : { 
+            for(int i = 0 i < w*h; ++i) {
+                int idx = numChannels*i;
+                result[i] = (in[idx] | in[idx+1] << 8u | in[idx+2] << 16u | 255u << 24u);
+            }
+        } break;
+        case 1 : { 
+            for(int i = 0 i < w*h; ++i) {
+                int idx = numChannels*i;
+                result[i] = sinm__greyscale_from_byte(in[idx]);
+            }
+        }
+    }
 
     if(result) {
         if(numChannels > 1 && greyscaleType != sinm_greyscale_none) {
@@ -708,8 +708,8 @@ sinm__normal_map_u8(const uint8_t *in, uint32_t w, int32_t h, float scale, float
         sinm__sobel3x3_normals(intermediate, result, w, h, scale, flipY);
     }
 
-	free(intermediate);
-	return result;
+    free(intermediate);
+    return result;
 }
 #endif
 
