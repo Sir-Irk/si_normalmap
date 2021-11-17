@@ -600,6 +600,7 @@ sinm_greyscale(const uint32_t* in, uint32_t* out, int32_t w, int32_t h, sinm_gre
 SINM_DEF int
 sinm_normal_map_buffer(const uint32_t* in, uint32_t* out, int32_t w, int32_t h, float scale, float blurRadius, sinm_greyscale_type greyscaleType, int flipY, int useSimd)
 {
+    assert(w > 0 && h > 0);
     uint32_t* intermediate = (uint32_t*)malloc(w * h * sizeof(uint32_t));
 
     if (intermediate) {
@@ -615,8 +616,14 @@ sinm_normal_map_buffer(const uint32_t* in, uint32_t* out, int32_t w, int32_t h, 
         } else {
             memcpy(intermediate, out, w * h * sizeof(uint32_t));
         }
-        //sinm__sobel3x3_normals(intermediate, out, w, h, scale, flipY);
-        sinm__sobel3x3_normals_simd(intermediate, out, w, h, scale, flipY);
+
+        //TODO: support using simd on non power of 2 images
+        int32_t count = w * h;
+        if (count % SINM_SIMD_WIDTH == 0) {
+            sinm__sobel3x3_normals_simd(intermediate, out, w, h, scale, flipY);
+        } else {
+            sinm__sobel3x3_normals(intermediate, out, w, h, scale, flipY);
+        }
         free(intermediate);
         return 1;
     }
@@ -627,8 +634,9 @@ SINM_DEF uint32_t*
 sinm_normal_map(const uint32_t* in, int32_t w, int32_t h, float scale, float blurRadius, sinm_greyscale_type greyscaleType, int flipY, int useSimd)
 {
     uint32_t* result = (uint32_t*)malloc(w * h * sizeof(uint32_t));
-    if (result)
+    if (result) {
         sinm_normal_map_buffer(in, result, w, h, scale, blurRadius, greyscaleType, flipY, useSimd);
+    }
     return result;
 }
 
