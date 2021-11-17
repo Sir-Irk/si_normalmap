@@ -28,7 +28,7 @@ uint32_t *sinm_normal_map(const uint32_t *in, int32_t w, int32_t h, float scale,
 
 int main()
 {
-    uint32_t *image = ...load pixels from some image;
+    uint32_t *image = //...load pixels from some image;
     uint32_t *nm = sinm_normal_map(image, imageWidth, imageHeight, 1.0f, 2.0f, sinm_greyscale_average); 
 
     //... write normalmap to a file
