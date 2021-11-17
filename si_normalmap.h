@@ -387,7 +387,7 @@ sinm__sobel3x3_normals_simd(const uint32_t* in, uint32_t* out, int32_t w, int32_
     simd__float simd1 = simd__set1_ps(1.0f);
     simd__float simd127 = simd__set1_ps(127.0f);
 
-    int batchCount = 0;
+    int32_t batchCounter = 0;
     sinm__aligned_var(float, SINM_SIMD_WIDTH) xBatch[SINM_SIMD_WIDTH];
     sinm__aligned_var(float, SINM_SIMD_WIDTH) yBatch[SINM_SIMD_WIDTH];
 
@@ -415,21 +415,24 @@ sinm__sobel3x3_normals_simd(const uint32_t* in, uint32_t* out, int32_t w, int32_
             float xn = _mm_cvtss_f32(_mm_hadd_ps(xSum, xSum));
             float yn = _mm_cvtss_f32(_mm_hadd_ps(ySum, ySum));
 
-            xBatch[batchCount] = xn;
-            yBatch[batchCount++] = yn;
-            if (batchCount == SINM_SIMD_WIDTH) {
-                batchCount = 0;
+            xBatch[batchCounter] = xn;
+            yBatch[batchCounter++] = yn;
+            if (batchCounter == SINM_SIMD_WIDTH) {
+                batchCounter = 0;
                 simd__float x = simd__loadu_ps(xBatch);
                 simd__float y = simd__loadu_ps(yBatch);
                 simd__float z = simd__set1_ps(255.0f);
+
                 x = simd__mul_ps(x, simdScale);
                 y = simd__mul_ps(y, simdScale);
+
+                //normalize
                 simd__float len = sinm__length_simd(x, y, z);
                 simd__float invLen = simd__div_ps(simd__set1_ps(1.0f), len);
-                simd__float mask = simd__cmp_ps(simd__setzero_ps(), len, _CMP_EQ_OQ);
-                x = simd__andnot_ps(mask, simd__mul_ps(x, invLen));
-                y = simd__andnot_ps(mask, simd__mul_ps(y, invLen));
-                z = simd__andnot_ps(mask, simd__mul_ps(z, invLen));
+                x = simd__mul_ps(x, invLen);
+                y = simd__mul_ps(y, invLen);
+                z = simd__mul_ps(z, invLen);
+
                 int index = yIter * w + (xIter - (SINM_SIMD_WIDTH - 1));
                 simd__storeu_ix((simd__int*)&out[index], sinm__v3_to_rgba_simd(x, y, z));
             }
@@ -590,7 +593,7 @@ SINM_DEF void
 sinm_greyscale(const uint32_t* in, uint32_t* out, int32_t w, int32_t h, sinm_greyscale_type type)
 {
     int32_t count = w * h;
-    if (count > 0 && count % SINM_SIMD_WIDTH == 0) {
+    if (count % SINM_SIMD_WIDTH == 0) {
         sinm__simd_greyscale(in, out, w, h, type);
     } else {
         sinm__greyscale(in, out, w, h, type);
@@ -624,6 +627,7 @@ sinm_normal_map_buffer(const uint32_t* in, uint32_t* out, int32_t w, int32_t h, 
         } else {
             sinm__sobel3x3_normals(intermediate, out, w, h, scale, flipY);
         }
+
         free(intermediate);
         return 1;
     }
@@ -635,7 +639,10 @@ sinm_normal_map(const uint32_t* in, int32_t w, int32_t h, float scale, float blu
 {
     uint32_t* result = (uint32_t*)malloc(w * h * sizeof(uint32_t));
     if (result) {
-        sinm_normal_map_buffer(in, result, w, h, scale, blurRadius, greyscaleType, flipY, useSimd);
+        if (!sinm_normal_map_buffer(in, result, w, h, scale, blurRadius, greyscaleType, flipY, useSimd)) {
+            free(result);
+            return NULL;
+        }
     }
     return result;
 }
