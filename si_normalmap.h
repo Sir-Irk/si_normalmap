@@ -318,12 +318,10 @@ sinm__gaussian_box(uint32_t* in, uint32_t* out, int32_t w, int32_t h, float r)
     float boxes[3];
     sinm__generate_gaussian_box(boxes, sizeof(boxes) / sizeof(boxes[0]), r);
 
-    sinm__box_blur_h(in, out, w, h, (boxes[0] - 1) / 2);
-    sinm__box_blur_v(out, in, w, h, (boxes[0] - 1) / 2);
-    sinm__box_blur_h(in, out, w, h, (boxes[1] - 1) / 2);
-    sinm__box_blur_v(out, in, w, h, (boxes[1] - 1) / 2);
-    sinm__box_blur_h(in, out, w, h, (boxes[2] - 1) / 2);
-    sinm__box_blur_v(out, in, w, h, (boxes[2] - 1) / 2);
+    for (int i = 0; i < 3; ++i) {
+        sinm__box_blur_h(in, out, w, h, (boxes[i] - 1) / 2);
+        sinm__box_blur_v(out, in, w, h, (boxes[i] - 1) / 2);
+    }
 
     memcpy(out, in, w * h * sizeof(uint32_t));
 }
