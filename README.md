@@ -5,21 +5,6 @@ Features:
  - Convert color buffer to greyscale using either lightness, average or luminance methods(with SSE/AVX versions available)
  - Convert greyscale buffer to a normal map with gaussian blur pre-filtering
  
-
-### Example(texture from opengameart.org):
-
-Input:
-
-![input](https://imgur.com/Grx9Uvs.png) 
-
-Output:
-
-![output](https://i.imgur.com/m64imlB.png)
-
-Comparison of lighting without and with normal map(and a second "detail" normal map)
-
-![lighting](https://imgur.com/CIw2oFB.png)
-
 ### Interface
 ```C
 typedef enum
@@ -49,3 +34,17 @@ uint32_t *nm = sinm_normal_map(image, imageWidth, imageHeight, 1.0f, 2.0f, sinm_
 ... write normalmap to a file
 
 ```
+### Example(texture from opengameart.org):
+
+Input:
+
+![input](https://imgur.com/Grx9Uvs.png) 
+
+Output:
+
+![output](https://i.imgur.com/m64imlB.png)
+
+Comparison of lighting without and with normal map(and a second "detail" normal map)
+
+![lighting](https://imgur.com/CIw2oFB.png)
+
