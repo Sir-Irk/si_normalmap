@@ -31,7 +31,7 @@ int main()
     uint32_t *image = ...load pixels from some image;
     uint32_t *nm = sinm_normal_map(image, imageWidth, imageHeight, 1.0f, 2.0f, sinm_greyscale_average); 
 
-    ... write normalmap to a file
+    //... write normalmap to a file
     
     return 0;
 }
