@@ -71,6 +71,11 @@ SINM_DEF uint32_t* sinm_normal_map(const uint32_t* in, int32_t w, int32_t h, flo
 //   "greyscaleType" specifies the conversion method from color to greyscale before
 //    generating the normal map. This step is skipped when using sinm_greyscale_none.
 
+SINM_DEF int sinm_normal_map_buffer(const uint32_t* in, uint32_t* out, int32_t w, int32_t h, float scale, float blurRadius, sinm_greyscale_type greyscaleType, int flipY);
+SINM_DEF sinm__inline void sinm_normalize(uint32_t* in, int32_t w, int32_t h, float scale, int flipY);
+SINM_DEF sinm__inline uint32_t* sinm_composite_alloc(const uint32_t* in1, const uint32_t* in2, int32_t w, int32_t h);
+SINM_DEF sinm__inline void sinm_composite(const uint32_t* in1, const uint32_t* in2, uint32_t* out, int32_t w, int32_t h);
+
 #else // SI_NORMALMAP_IMPLEMENTATION
 
 // #include <x86intrin.h>
