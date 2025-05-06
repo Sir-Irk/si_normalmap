@@ -70,15 +70,15 @@ int main()
 
 int main(void)
 {
-    int x, y, comp;
-    uint32_t* pixels = (uint32_t*)stbi_load("albedo.png", &x, &y, &comp, 4);
+    int x, y;
+    uint32_t* pixels = (uint32_t*)stbi_load("albedo.png", &x, &y, NULL, 4);
 
     // Make 2 normal maps at different blur radii and strength and composite them together.
     uint32_t* nm0 = sinm_normal_map(pixels, x, y, 2.0f, 1.0f, sinm_greyscale_luminance, 0);
     uint32_t* nm1 = sinm_normal_map(pixels, x, y, 3.0f, 8.0f, sinm_greyscale_luminance, 0);
     uint32_t* composite = sinm_composite_alloc(nm0, nm1, x, y);
 
-    stbi_write_png("normal.png", x, y, comp, composite, 0);
+    stbi_write_png("normal.png", x, y, 4, composite, 0);
 
     free(nm0);
     free(nm1);
