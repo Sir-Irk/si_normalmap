@@ -82,6 +82,7 @@ SINM_DEF sinm__inline void sinm_composite(const uint32_t* in1, const uint32_t* i
 #include <intrin.h>
 
 #ifdef __AVX__
+#define SINM_SIMD_ALIGNMENT 32
 #define simd_prefix_float(name) _mm256_##name
 #define SINM_SIMD_WIDTH 8
 #define simd__int __m256i
@@ -92,6 +93,7 @@ SINM_DEF sinm__inline void sinm_composite(const uint32_t* in1, const uint32_t* i
 #define simd__storeu_ix(ptr, v) _mm256_storeu_si256(ptr, v)
 #else
 #define simd_prefix_float(name) _mm_##name
+#define SINM_SIMD_ALIGNMENT 16
 #define SINM_SIMD_WIDTH 4
 #define simd__int __m128i
 #define simd__float __m128
@@ -379,12 +381,13 @@ sinm__sobel3x3_normals(const uint32_t* in, uint32_t* out, int32_t w, int32_t h, 
 static void
 sinm__sobel3x3_normals_simd(const uint32_t* in, uint32_t* out, int32_t w, int32_t h, float scale, int flipY)
 {
-    const float xk[3][4] = {
+    // kernels are only used by SSE instructions
+    sinm__aligned_var(const float, 16) xk[3][4] = {
         { -1, 0, 1, 0 },
         { -2, 0, 2, 0 },
         { -1, 0, 1, 0 },
     };
-    const float yk[3][4] = {
+    sinm__aligned_var(const float, 16) yk[3][4] = {
         { -1, -2, -1, 0 },
         { 0, 0, 0, 0 },
         { 1, 2, 1, 0 },
@@ -396,8 +399,10 @@ sinm__sobel3x3_normals_simd(const uint32_t* in, uint32_t* out, int32_t w, int32_
     simd__float simd127 = simd__set1_ps(127.0f);
 
     int32_t batchCounter = 0;
-    sinm__aligned_var(float, SINM_SIMD_WIDTH) xBatch[SINM_SIMD_WIDTH];
-    sinm__aligned_var(float, SINM_SIMD_WIDTH) yBatch[SINM_SIMD_WIDTH];
+
+    // 16 byte alignment for SSE. 32 byte for AVX
+    sinm__aligned_var(float, SINM_SIMD_ALIGNMENT) xBatch[SINM_SIMD_WIDTH];
+    sinm__aligned_var(float, SINM_SIMD_ALIGNMENT) yBatch[SINM_SIMD_WIDTH];
 
     for (int32_t yIter = 0; yIter < h; ++yIter) {
         for (int32_t xIter = SINM_SIMD_WIDTH; xIter < w - SINM_SIMD_WIDTH; ++xIter) {
