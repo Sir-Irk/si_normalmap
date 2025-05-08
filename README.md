@@ -9,6 +9,7 @@ Features:
 TODO: add gpu support using Opengl(this is a work in progress).
  
 ### Interface
+
 ```C
 typedef enum
 {
@@ -39,6 +40,7 @@ uint32_t* sinm_composite_alloc(const uint32_t* in1, const uint32_t* in2, int32_t
 ```
 
 ### Basic Usage:
+
 ```C
 #define SI_NORMALMAP_IMPLEMENTATION
 #include "si_normalmap.h"
@@ -55,6 +57,7 @@ int main()
 ```
 
 ### More specific Example using more features(error checking excluded for brevity. Using stb libraries to load and write https://github.com/nothings/stb)
+
 ```C
 #define SI_NORMALMAP_IMPLEMENTATION
 #define SI_NORMALMAP_STATIC
