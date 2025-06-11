@@ -90,7 +90,7 @@ int main(void)
 }
 ```
 
-Compiled on linux with ``` clang -O3 main.c -o main -lm -march=native ```
+Compiled on linux with ``` clang -O3 example.c -o example -lm -march=native ```
 ### Example Output(texture from opengameart.org):
 
 Input:
