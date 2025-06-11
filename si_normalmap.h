@@ -454,7 +454,7 @@ sinm__sobel3x3_normals_simd(const uint32_t *in, uint32_t *out, int32_t w, int32_
                 simd__float y = simd__loadu_ps(yBatch);
                 simd__float z = simd__set1_ps(255.0f);
 
-                x = simd__mul_ps(simd__mul_ps(x, simdScale), simdFlipY);
+                x = simd__mul_ps(x, simdScale));
                 y = simd__mul_ps(simd__mul_ps(y, simdScale), simdFlipY);
 
                 // normalize
@@ -723,8 +723,7 @@ sinm_normal_map_buffer(const uint32_t *in,
         }
 
         // TODO: support using simd on non power of 2 images
-        int32_t count = w * h;
-        if (count % SINM_SIMD_WIDTH == 0) {
+        if (w % SINM_SIMD_WIDTH == 0) {
             sinm__sobel3x3_normals_simd(intermediate, out, w, h, scale, flipY);
         } else {
             sinm__sobel3x3_normals(intermediate, out, w, h, scale, flipY);
