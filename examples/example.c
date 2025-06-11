@@ -14,13 +14,13 @@ int
 main(void)
 {
     int x, y;
-    uint32_t *pixels = (uint32_t *)stbi_load("height.png", &x, &y, NULL, 4);
+    uint32_t *pixels = (uint32_t *)stbi_load("albedo.png", &x, &y, NULL, 4);
     assert(pixels);
 
     // Make 2 normal maps at different blur radii and strength and composite them
     // together.
-    uint32_t *nm0 = sinm_normal_map(pixels, x, y, 4.0f, 0.0f, sinm_greyscale_luminance, 1);
-    uint32_t *nm1 = sinm_normal_map(pixels, x, y, 0.5f, 0.0f, sinm_greyscale_luminance, 1);
+    uint32_t *nm0 = sinm_normal_map(pixels, x, y, 2.0f, 1.0f, sinm_greyscale_luminance, 1);
+    uint32_t *nm1 = sinm_normal_map(pixels, x, y, 2.0f, 8.0f, sinm_greyscale_luminance, 1);
     uint32_t *composite = sinm_composite_alloc(nm0, nm1, x, y);
     sinm_normalize(composite, x, y, 1.0f, 0);
 
