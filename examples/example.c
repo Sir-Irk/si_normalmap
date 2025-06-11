@@ -11,7 +11,7 @@
 int main(void) {
   int x, y;
   uint32_t *pixels =
-      (uint32_t *)stbi_load("Examples/albedo.png", &x, &y, NULL, 4);
+      (uint32_t *)stbi_load("albedo.png", &x, &y, NULL, 4);
   assert(pixels);
 
   // Make 2 normal maps at different blur radii and strength and composite them
