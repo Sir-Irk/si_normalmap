@@ -90,18 +90,19 @@ int main(void)
 }
 ```
 
+Compiled on linux with ``` clang -O3 main.c -o main -lm -march=native ```
 ### Example Output(texture from opengameart.org):
 
 Input:
 
-![input](https://github.com/Sir-Irk/si_normalmap/blob/master/Examples/albedo.png) 
+![input](https://github.com/Sir-Irk/si_normalmap/blob/master/examples/albedo.png) 
 
 Output:
 
-![output](https://github.com/Sir-Irk/si_normalmap/blob/master/Examples/normal_composite_example.png)
+![output](https://github.com/Sir-Irk/si_normalmap/blob/master/examples/normal_composite_example.png)
 
 Comparison of lighting without and with normal map(and a second "detail" normal map)
 
-![lighting](https://github.com/Sir-Irk/si_normalmap/blob/master/Examples/lighting.png)
+![lighting](https://github.com/Sir-Irk/si_normalmap/blob/master/examples/lighting.png)
 
 
