@@ -11,12 +11,14 @@
         the implementation. Otherwise this acts as a regualr header file
 
  *     uint32_t *in = ...load pixels from image
- *     uint32_t *nm = sinm_normal_map(in, w, h, scale, blurRadius, greyscaleType);
+ *     uint32_t *nm = sinm_normal_map(in, w, h, scale, blurRadius,
+ greyscaleType);
  *     ...write normal map to a file
  *
  ***************************************************************************/
 
 #include <assert.h>
+#include <math.h>
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
@@ -47,7 +49,8 @@
 
 #ifndef SINM_TYPES
 #define SINM_TYPES
-typedef enum {
+typedef enum
+{
     sinm_greyscale_none,
     sinm_greyscale_lightness,
     sinm_greyscale_average,
@@ -59,27 +62,45 @@ typedef enum {
 
 #ifndef SI_NORMALMAP_IMPLEMENTATION
 
-SINM_DEF void sinm_greyscale(const uint32_t* in, uint32_t* out, int32_t w, int32_t h, sinm_greyscale_type type);
+SINM_DEF void sinm_greyscale(const uint32_t *in, uint32_t *out, int32_t w,
+                             int32_t h, sinm_greyscale_type type);
 // Converts values in "buffer" to greyscale  using either the
 // lightness, average or luminance methods
 // Result can be produced in-place if "in" and "out" are the same buffers
 
-SINM_DEF uint32_t* sinm_normal_map(const uint32_t* in, int32_t w, int32_t h, float scale, float blurRadius, sinm_greyscale_type greyscaleType, int flipY);
+SINM_DEF uint32_t *sinm_normal_map(const uint32_t *in, int32_t w, int32_t h,
+                                   float scale, float blurRadius,
+                                   sinm_greyscale_type greyscaleType,
+                                   int flipY);
 // Converts input buffer to a normal map and returns a pointer to it.
 //   "scale" controls the intensity of the result
-//   "blurRadius" controls the radius for gaussian blurring before generating normals
-//   "greyscaleType" specifies the conversion method from color to greyscale before
-//    generating the normal map. This step is skipped when using sinm_greyscale_none.
+//   "blurRadius" controls the radius for gaussian blurring before generating
+//   normals "greyscaleType" specifies the conversion method from color to
+//   greyscale before
+//    generating the normal map. This step is skipped when using
+//    sinm_greyscale_none.
 
-SINM_DEF int sinm_normal_map_buffer(const uint32_t* in, uint32_t* out, int32_t w, int32_t h, float scale, float blurRadius, sinm_greyscale_type greyscaleType, int flipY);
-SINM_DEF sinm__inline void sinm_normalize(uint32_t* in, int32_t w, int32_t h, float scale, int flipY);
-SINM_DEF sinm__inline uint32_t* sinm_composite_alloc(const uint32_t* in1, const uint32_t* in2, int32_t w, int32_t h);
-SINM_DEF sinm__inline void sinm_composite(const uint32_t* in1, const uint32_t* in2, uint32_t* out, int32_t w, int32_t h);
+SINM_DEF int sinm_normal_map_buffer(const uint32_t *in, uint32_t *out,
+                                    int32_t w, int32_t h, float scale,
+                                    float blurRadius,
+                                    sinm_greyscale_type greyscaleType,
+                                    int flipY);
+SINM_DEF sinm__inline void sinm_normalize(uint32_t *in, int32_t w, int32_t h,
+                                          float scale, int flipY);
+SINM_DEF sinm__inline uint32_t *sinm_composite_alloc(const uint32_t *in1,
+                                                     const uint32_t *in2,
+                                                     int32_t w, int32_t h);
+SINM_DEF sinm__inline void sinm_composite(const uint32_t *in1,
+                                          const uint32_t *in2, uint32_t *out,
+                                          int32_t w, int32_t h);
 
 #else // SI_NORMALMAP_IMPLEMENTATION
 
-// #include <x86intrin.h>
+#ifdef _MSC_VER
 #include <intrin.h>
+#else
+#include <x86intrin.h>
+#endif
 
 #ifdef __AVX__
 #define SINM_SIMD_ALIGNMENT 32
@@ -138,85 +159,84 @@ typedef struct
     float x, y, z;
 } sinm__v3;
 
-sinm__inline static float
-sinm__length(float x, float y, float z)
+sinm__inline static float sinm__length(float x, float y, float z)
 {
     return sqrtf(x * x + y * y + z * z);
 }
 
-sinm__inline static simd__float
-sinm__length_simd(simd__float x, simd__float y, simd__float z)
+sinm__inline static simd__float sinm__length_simd(simd__float x, simd__float y,
+                                                  simd__float z)
 {
-    return simd__sqrt_ps(simd__add_ps(simd__add_ps(simd__mul_ps(x, x), simd__mul_ps(y, y)), simd__mul_ps(z, z)));
+    return simd__sqrt_ps(
+        simd__add_ps(simd__add_ps(simd__mul_ps(x, x), simd__mul_ps(y, y)),
+                     simd__mul_ps(z, z)));
 }
 
-sinm__inline static sinm__v3
-sinm__normalized(float x, float y, float z)
+sinm__inline static sinm__v3 sinm__normalized(float x, float y, float z)
 {
     sinm__v3 result;
     float len = sinm__length(x, y, z);
 
-    if (len > 1e-04f) {
+    if (len > 1e-04f)
+    {
         float invLen = 1.0f / len;
         result.x = x * invLen;
         result.y = y * invLen;
         result.z = z * invLen;
-    } else {
+    }
+    else
+    {
         result.x = result.y = result.z = 0.0f;
     }
 
     return result;
 }
 
-sinm__inline static uint32_t
-sinm__lightness_average(uint32_t r, uint32_t g, uint32_t b)
+sinm__inline static uint32_t sinm__lightness_average(uint32_t r, uint32_t g,
+                                                     uint32_t b)
 {
     return (sinm__max(sinm__max(r, g), b) + sinm__min(sinm__min(r, g), b)) / 2;
 }
 
-sinm__inline static uint32_t
-sinm__average(uint32_t r, uint32_t g, uint32_t b)
+sinm__inline static uint32_t sinm__average(uint32_t r, uint32_t g, uint32_t b)
 {
     return (r + g + b) / 3;
 }
 
 // NOTE: bias is based on human eye sensitivity
-sinm__inline static uint32_t
-sinm__luminance(uint32_t r, uint32_t g, uint32_t b)
+sinm__inline static uint32_t sinm__luminance(uint32_t r, uint32_t g, uint32_t b)
 {
     return (uint32_t)(0.21f * r + 0.72f * g + 0.07f * b);
 }
 
-sinm__inline static uint32_t
-sinm__greyscale_from_byte(uint8_t c)
+sinm__inline static uint32_t sinm__greyscale_from_byte(uint8_t c)
 {
     return (c | c << 8u | c << 16u | 255u << 24u);
 }
 
-static sinm__inline sinm__v3
-sinm__rgba_to_v3(uint32_t c)
+static sinm__inline sinm__v3 sinm__rgba_to_v3(uint32_t c)
 {
-    sinm__v3 result = {
-        (float)((c >> 0) & 0xFFu) - 127.0f,
-        (float)((c >> 8) & 0xFFu) - 127.0f,
-        (float)((c >> 16) & 0xFFu) - 127.0f
-    };
+    sinm__v3 result = {(float)((c >> 0) & 0xFFu) - 127.0f,
+                       (float)((c >> 8) & 0xFFu) - 127.0f,
+                       (float)((c >> 16) & 0xFFu) - 127.0f};
 
     return result;
 }
 
-static sinm__inline void
-sinm__rgba_to_v3_simd(simd__int c, simd__float* x, simd__float* y, simd__float* z)
+static sinm__inline void sinm__rgba_to_v3_simd(simd__int c, simd__float *x,
+                                               simd__float *y, simd__float *z)
 {
     simd__int ff = simd__set1_epi32(0xFF);
     simd__int v127 = simd__set1_epi32(127);
-    *x = simd__cvtepi32_ps(simd__sub_epi32(simd__and_ix(simd__srli_epi32(c, 0), ff), v127));
-    *y = simd__cvtepi32_ps(simd__sub_epi32(simd__and_ix(simd__srli_epi32(c, 8), ff), v127));
-    *z = simd__cvtepi32_ps(simd__sub_epi32(simd__and_ix(simd__srli_epi32(c, 16), ff), v127));
+    *x = simd__cvtepi32_ps(
+        simd__sub_epi32(simd__and_ix(simd__srli_epi32(c, 0), ff), v127));
+    *y = simd__cvtepi32_ps(
+        simd__sub_epi32(simd__and_ix(simd__srli_epi32(c, 8), ff), v127));
+    *z = simd__cvtepi32_ps(
+        simd__sub_epi32(simd__and_ix(simd__srli_epi32(c, 16), ff), v127));
 }
 
-static sinm__inline uint32_t
-sinm__unit_vector_to_rgba(sinm__v3 v)
+static sinm__inline uint32_t sinm__unit_vector_to_rgba(sinm__v3 v)
 {
     uint32_t r = (uint32_t)((1.0f + v.x) * 127.0f);
     uint32_t g = (uint32_t)((1.0f + v.y) * 127.0f);
@@ -224,8 +244,9 @@ sinm__unit_vector_to_rgba(sinm__v3 v)
     return r | g << 8u | b << 16u | 255u << 24u;
 }
 
-static sinm__inline simd__int
-sinm__v3_to_rgba_simd(simd__float x, simd__float y, simd__float z)
+static sinm__inline simd__int sinm__v3_to_rgba_simd(simd__float x,
+                                                    simd__float y,
+                                                    simd__float z)
 {
     simd__float one = simd__set1_ps(1.0f);
     simd__float v127 = simd__set1_ps(127.0f);
@@ -233,12 +254,15 @@ sinm__v3_to_rgba_simd(simd__float x, simd__float y, simd__float z)
     simd__int r = simd__cvtps_epi32(simd__mul_ps(simd__add_ps(one, x), v127));
     simd__int g = simd__cvtps_epi32(simd__mul_ps(simd__add_ps(one, y), v127));
     simd__int b = simd__cvtps_epi32(simd__mul_ps(simd__add_ps(one, z), v127));
-    simd__int c = simd__or_ix(simd__or_ix(simd__or_ix(r, simd__slli_epi32(g, 8)), simd__slli_epi32(b, 16)), a);
+    simd__int c =
+        simd__or_ix(simd__or_ix(simd__or_ix(r, simd__slli_epi32(g, 8)),
+                                simd__slli_epi32(b, 16)),
+                    a);
     return c;
 }
 
-SINM_DEF void
-sinm__generate_gaussian_box(float* outBoxes, int32_t n, float sigma)
+SINM_DEF void sinm__generate_gaussian_box(float *outBoxes, int32_t n,
+                                          float sigma)
 {
     float wIdeal = sqrtf((12.0f * sigma * sigma / (float)n) + 1.0f);
     int32_t wl = (int32_t)floorf(wIdeal);
@@ -246,20 +270,25 @@ sinm__generate_gaussian_box(float* outBoxes, int32_t n, float sigma)
         --wl;
     int32_t wu = wl + 2;
 
-    float mIdeal = (12.0f * sigma * sigma - n * wl * wl - 4.0f * n * wl - 3.0f * n) / (-4.0f * wl - 4.0f);
+    float mIdeal =
+        (12.0f * sigma * sigma - n * wl * wl - 4.0f * n * wl - 3.0f * n) /
+        (-4.0f * wl - 4.0f);
     int32_t m = (int32_t)roundf(mIdeal);
 
-    for (int i = 0; i < n; ++i) {
+    for (int i = 0; i < n; ++i)
+    {
         outBoxes[i] = (i < m) ? (float)wl : (float)wu;
     }
 }
 
-// NOTE: decently optimized box blur based on http://blog.ivank.net/fastest-gaussian-blur.html
-SINM_DEF void
-sinm__box_blur_h(uint32_t* in, uint32_t* out, int32_t w, int32_t h, float r)
+// NOTE: decently optimized box blur based on
+// http://blog.ivank.net/fastest-gaussian-blur.html
+SINM_DEF void sinm__box_blur_h(uint32_t *in, uint32_t *out, int32_t w,
+                               int32_t h, float r)
 {
     float invR = 1.0f / (r + r + 1);
-    for (int i = 0; i < h; ++i) {
+    for (int i = 0; i < h; ++i)
+    {
         int32_t oi = i * w;
         int32_t li = oi;
         int32_t ri = (int32_t)(oi + r);
@@ -267,29 +296,34 @@ sinm__box_blur_h(uint32_t* in, uint32_t* out, int32_t w, int32_t h, float r)
         uint32_t lv = in[oi + w - 1] & 0xFFu;
         uint32_t sum = (uint32_t)((r + 1.0f) * fv);
 
-        for (int j = 0; j < r; ++j) {
+        for (int j = 0; j < r; ++j)
+        {
             sum += in[oi + j] & 0xFFu;
         }
-        for (int j = 0; j <= r; ++j) {
+        for (int j = 0; j <= r; ++j)
+        {
             sum += (in[ri++] & 0xFFu) - fv;
             out[oi++] = sinm__greyscale_from_byte((uint8_t)(sum * invR));
         }
-        for (int j = (int)r + 1; j < (w - r); ++j) {
+        for (int j = (int)r + 1; j < (w - r); ++j)
+        {
             sum += (in[ri++] & 0xFFu) - (in[li++] & 0xFFu);
             out[oi++] = sinm__greyscale_from_byte((uint8_t)(sum * invR));
         }
-        for (int j = (int)(w - r); j < w; ++j) {
+        for (int j = (int)(w - r); j < w; ++j)
+        {
             sum += lv - (in[li++] & 0xFFu);
             out[oi++] = sinm__greyscale_from_byte((uint8_t)(sum * invR));
         }
     }
 }
 
-SINM_DEF void
-sinm__box_blur_v(uint32_t* in, uint32_t* out, int32_t w, int32_t h, float r)
+SINM_DEF void sinm__box_blur_v(uint32_t *in, uint32_t *out, int32_t w,
+                               int32_t h, float r)
 {
     float invR = 1.0f / (r + r + 1);
-    for (int i = 0; i < w; ++i) {
+    for (int i = 0; i < w; ++i)
+    {
         int32_t oi = i;
         int32_t li = oi;
         int32_t ri = (int32_t)(oi + r * w);
@@ -297,23 +331,27 @@ sinm__box_blur_v(uint32_t* in, uint32_t* out, int32_t w, int32_t h, float r)
         uint32_t lv = in[oi + w * (h - 1)] & 0xFFu;
         uint32_t sum = (uint32_t)((r + 1) * fv);
 
-        for (int j = 0; j < r; j++) {
+        for (int j = 0; j < r; j++)
+        {
             sum += in[oi + j * w] & 0xFFu;
         }
-        for (int j = 0; j <= r; j++) {
+        for (int j = 0; j <= r; j++)
+        {
             sum += (in[ri] & 0xFFu) - fv;
             out[oi] = sinm__greyscale_from_byte((uint8_t)(sum * invR));
             ri += w;
             oi += w;
         }
-        for (int j = (int)(r + 1); j < h - r; j++) {
+        for (int j = (int)(r + 1); j < h - r; j++)
+        {
             sum += (in[ri] & 0xFFu) - (in[li] & 0xFFu);
             out[oi] = sinm__greyscale_from_byte((uint8_t)(sum * invR));
             li += w;
             ri += w;
             oi += w;
         }
-        for (int j = (int)(h - r); j < h; j++) {
+        for (int j = (int)(h - r); j < h; j++)
+        {
             sum += lv - (in[li] & 0xFFu);
             out[oi] = sinm__greyscale_from_byte((uint8_t)(sum * invR));
             li += w;
@@ -322,13 +360,14 @@ sinm__box_blur_v(uint32_t* in, uint32_t* out, int32_t w, int32_t h, float r)
     }
 }
 
-SINM_DEF void
-sinm__gaussian_box(uint32_t* in, uint32_t* out, int32_t w, int32_t h, float r)
+SINM_DEF void sinm__gaussian_box(uint32_t *in, uint32_t *out, int32_t w,
+                                 int32_t h, float r)
 {
     float boxes[3];
     sinm__generate_gaussian_box(boxes, sizeof(boxes) / sizeof(boxes[0]), r);
 
-    for (int i = 0; i < 3; ++i) {
+    for (int i = 0; i < 3; ++i)
+    {
         sinm__box_blur_h(in, out, w, h, (boxes[i] - 1) / 2);
         sinm__box_blur_v(out, in, w, h, (boxes[i] - 1) / 2);
     }
@@ -336,28 +375,34 @@ sinm__gaussian_box(uint32_t* in, uint32_t* out, int32_t w, int32_t h, float r)
     memcpy(out, in, w * h * sizeof(uint32_t));
 }
 
-SINM_DEF void
-sinm__sobel3x3_normals_row_range(const uint32_t* in, uint32_t* out, int32_t xs, int32_t xe, int32_t w, int32_t h, float scale, int flipY)
+SINM_DEF void sinm__sobel3x3_normals_row_range(const uint32_t *in,
+                                               uint32_t *out, int32_t xs,
+                                               int32_t xe, int32_t w, int32_t h,
+                                               float scale, int flipY)
 {
     const float xk[3][3] = {
-        { -1, 0, 1 },
-        { -2, 0, 2 },
-        { -1, 0, 1 },
+        {-1, 0, 1},
+        {-2, 0, 2},
+        {-1, 0, 1},
     };
     const float yk[3][3] = {
-        { -1, -2, -1 },
-        { 0, 0, 0 },
-        { 1, 2, 1 },
+        {-1, -2, -1},
+        {0, 0, 0},
+        {1, 2, 1},
     };
 
     float yDir = (flipY) ? -1.0f : 1.0f;
 
-    for (int32_t y = 0; y < h; ++y) {
-        for (int32_t x = xs; x < xe; ++x) {
+    for (int32_t y = 0; y < h; ++y)
+    {
+        for (int32_t x = xs; x < xe; ++x)
+        {
             float xmag = 0.0f;
             float ymag = 0.0f;
-            for (int32_t a = 0; a < 3; ++a) {
-                for (int32_t b = 0; b < 3; ++b) {
+            for (int32_t a = 0; a < 3; ++a)
+            {
+                for (int32_t b = 0; b < 3; ++b)
+                {
                     int32_t xIdx = sinm__min(w - 1, sinm__max(1, x + b - 1));
                     int32_t yIdx = sinm__min(h - 1, sinm__max(1, y + a - 1));
                     int32_t index = yIdx * w + xIdx;
@@ -366,31 +411,35 @@ sinm__sobel3x3_normals_row_range(const uint32_t* in, uint32_t* out, int32_t xs, 
                     ymag += pixel * yk[a][b];
                 }
             }
-            sinm__v3 color = sinm__normalized(xmag * scale, ymag * scale * yDir, 255.0f);
+            sinm__v3 color =
+                sinm__normalized(xmag * scale, ymag * scale * yDir, 255.0f);
             out[y * w + x] = sinm__unit_vector_to_rgba(color);
         }
     }
 }
 
-static sinm__inline void
-sinm__sobel3x3_normals(const uint32_t* in, uint32_t* out, int32_t w, int32_t h, float scale, int flipY)
+static sinm__inline void sinm__sobel3x3_normals(const uint32_t *in,
+                                                uint32_t *out, int32_t w,
+                                                int32_t h, float scale,
+                                                int flipY)
 {
     sinm__sobel3x3_normals_row_range(in, out, 0, w, w, h, scale, flipY);
 }
 
-static void
-sinm__sobel3x3_normals_simd(const uint32_t* in, uint32_t* out, int32_t w, int32_t h, float scale, int flipY)
+static void sinm__sobel3x3_normals_simd(const uint32_t *in, uint32_t *out,
+                                        int32_t w, int32_t h, float scale,
+                                        int flipY)
 {
     // kernels are only used by SSE instructions
     sinm__aligned_var(const float, 16) xk[3][4] = {
-        { -1, 0, 1, 0 },
-        { -2, 0, 2, 0 },
-        { -1, 0, 1, 0 },
+        {-1, 0, 1, 0},
+        {-2, 0, 2, 0},
+        {-1, 0, 1, 0},
     };
     sinm__aligned_var(const float, 16) yk[3][4] = {
-        { -1, -2, -1, 0 },
-        { 0, 0, 0, 0 },
-        { 1, 2, 1, 0 },
+        {-1, -2, -1, 0},
+        {0, 0, 0, 0},
+        {1, 2, 1, 0},
     };
 
     simd__float simdScale = simd__set1_ps(scale);
@@ -404,21 +453,25 @@ sinm__sobel3x3_normals_simd(const uint32_t* in, uint32_t* out, int32_t w, int32_
     sinm__aligned_var(float, SINM_SIMD_ALIGNMENT) xBatch[SINM_SIMD_WIDTH];
     sinm__aligned_var(float, SINM_SIMD_ALIGNMENT) yBatch[SINM_SIMD_WIDTH];
 
-    for (int32_t yIter = 0; yIter < h; ++yIter) {
-        for (int32_t xIter = SINM_SIMD_WIDTH; xIter < w - SINM_SIMD_WIDTH; ++xIter) {
+    for (int32_t yIter = 0; yIter < h; ++yIter)
+    {
+        for (int32_t xIter = SINM_SIMD_WIDTH; xIter < w - SINM_SIMD_WIDTH;
+             ++xIter)
+        {
             __m128 xmag = _mm_set1_ps(0.0f);
             __m128 ymag = _mm_set1_ps(0.0f);
 
-            for (int32_t a = 0; a < 3; ++a) {
+            for (int32_t a = 0; a < 3; ++a)
+            {
                 int32_t xIdx = sinm__min(w - 1, sinm__max(1, xIter - 1));
                 int32_t yIdx = sinm__min(h - 1, sinm__max(1, yIter + a - 1));
                 int32_t index = yIdx * w + xIdx;
 
-                __m128i pixel = _mm_loadu_si128((__m128i*)&in[index]);
+                __m128i pixel = _mm_loadu_si128((__m128i *)&in[index]);
                 pixel = _mm_and_si128(pixel, _mm_set1_epi32(0xFFu));
                 __m128 pixelf = _mm_cvtepi32_ps(pixel);
-                __m128 kx = _mm_loadu_ps((float*)&xk[a]);
-                __m128 ky = _mm_loadu_ps((float*)&yk[a]);
+                __m128 kx = _mm_loadu_ps((float *)&xk[a]);
+                __m128 ky = _mm_loadu_ps((float *)&yk[a]);
                 xmag = _mm_add_ps(_mm_mul_ps(pixelf, kx), xmag);
                 ymag = _mm_add_ps(_mm_mul_ps(pixelf, ky), ymag);
             }
@@ -430,7 +483,8 @@ sinm__sobel3x3_normals_simd(const uint32_t* in, uint32_t* out, int32_t w, int32_
 
             xBatch[batchCounter] = xn;
             yBatch[batchCounter++] = yn;
-            if (batchCounter == SINM_SIMD_WIDTH) {
+            if (batchCounter == SINM_SIMD_WIDTH)
+            {
                 batchCounter = 0;
                 simd__float x = simd__loadu_ps(xBatch);
                 simd__float y = simd__loadu_ps(yBatch);
@@ -447,32 +501,38 @@ sinm__sobel3x3_normals_simd(const uint32_t* in, uint32_t* out, int32_t w, int32_
                 z = simd__mul_ps(z, invLen);
 
                 int index = yIter * w + (xIter - (SINM_SIMD_WIDTH - 1));
-                simd__storeu_ix((simd__int*)&out[index], sinm__v3_to_rgba_simd(x, y, z));
+                simd__storeu_ix((simd__int *)&out[index],
+                                sinm__v3_to_rgba_simd(x, y, z));
             }
         }
     }
 
-    sinm__sobel3x3_normals_row_range(in, out, 0, SINM_SIMD_WIDTH, w, h, scale, flipY);
-    sinm__sobel3x3_normals_row_range(in, out, w - SINM_SIMD_WIDTH, w, w, h, scale, flipY);
+    sinm__sobel3x3_normals_row_range(in, out, 0, SINM_SIMD_WIDTH, w, h, scale,
+                                     flipY);
+    sinm__sobel3x3_normals_row_range(in, out, w - SINM_SIMD_WIDTH, w, w, h,
+                                     scale, flipY);
 }
 
-SINM_DEF void
-sinm__normalize(uint32_t* in, int32_t w, int32_t h, float scale, int flipY)
+SINM_DEF void sinm__normalize(uint32_t *in, int32_t w, int32_t h, float scale,
+                              int flipY)
 {
     float invScale = 1.0f / scale;
     float yDir = (flipY) ? -1.0f : 1.0f;
-    for (int32_t i = 0; i < w * h; ++i) {
+    for (int32_t i = 0; i < w * h; ++i)
+    {
         sinm__v3 v = sinm__rgba_to_v3(in[i]);
-        in[i] = sinm__unit_vector_to_rgba(sinm__normalized(v.x, v.y * yDir, v.z * invScale));
+        in[i] = sinm__unit_vector_to_rgba(
+            sinm__normalized(v.x, v.y * yDir, v.z * invScale));
     }
 }
 
-SINM_DEF void
-sinm__normalize_simd(uint32_t* in, int32_t w, int32_t h, float scale, int flipY)
+SINM_DEF void sinm__normalize_simd(uint32_t *in, int32_t w, int32_t h,
+                                   float scale, int flipY)
 {
     assert(w % SINM_SIMD_WIDTH == 0);
-    for (int32_t i = 0; i < w * h; i += SINM_SIMD_WIDTH) {
-        simd__int pixel = simd__loadu_ix((simd__int*)&in[i]);
+    for (int32_t i = 0; i < w * h; i += SINM_SIMD_WIDTH)
+    {
+        simd__int pixel = simd__loadu_ix((simd__int *)&in[i]);
         simd__float x, y, z;
         sinm__rgba_to_v3_simd(pixel, &x, &y, &z);
         simd__float len = sinm__length_simd(x, y, z);
@@ -480,23 +540,28 @@ sinm__normalize_simd(uint32_t* in, int32_t w, int32_t h, float scale, int flipY)
         x = simd__mul_ps(x, invLen);
         y = simd__mul_ps(y, invLen);
         z = simd__mul_ps(z, invLen);
-        simd__storeu_ix((simd__int*)&in[i], sinm__v3_to_rgba_simd(x, y, z));
+        simd__storeu_ix((simd__int *)&in[i], sinm__v3_to_rgba_simd(x, y, z));
     }
 }
 
-SINM_DEF sinm__inline void
-sinm_normalize(uint32_t* in, int32_t w, int32_t h, float scale, int flipY)
+SINM_DEF sinm__inline void sinm_normalize(uint32_t *in, int32_t w, int32_t h,
+                                          float scale, int flipY)
 {
-    if (w % SINM_SIMD_WIDTH == 0) {
+    if (w % SINM_SIMD_WIDTH == 0)
+    {
         sinm__normalize_simd(in, w, h, scale, flipY);
-    } else {
+    }
+    else
+    {
         sinm__normalize(in, w, h, scale, flipY);
     }
 }
 
-SINM_DEF void sinm__composite(const uint32_t* in1, const uint32_t* in2, uint32_t* out, int32_t w, int32_t h)
+SINM_DEF void sinm__composite(const uint32_t *in1, const uint32_t *in2,
+                              uint32_t *out, int32_t w, int32_t h)
 {
-    for (int32_t i = 0; i < w * h; ++i) {
+    for (int32_t i = 0; i < w * h; ++i)
+    {
         uint32_t c1 = in1[i];
         uint32_t c2 = in2[i];
         uint32_t r1 = c1 & 0xFFu;
@@ -512,13 +577,15 @@ SINM_DEF void sinm__composite(const uint32_t* in1, const uint32_t* in2, uint32_t
     }
 }
 
-SINM_DEF void sinm__composite_simd(const uint32_t* in1, const uint32_t* in2, uint32_t* out, int32_t w, int32_t h)
+SINM_DEF void sinm__composite_simd(const uint32_t *in1, const uint32_t *in2,
+                                   uint32_t *out, int32_t w, int32_t h)
 {
     simd__int ff = simd__set1_epi32(0xFF);
     simd__int alpha = simd__slli_epi32(ff, 24);
-    for (int32_t i = 0; i < w * h; i += SINM_SIMD_WIDTH) {
-        simd__int c1 = simd__loadu_ix((simd__int*)&in1[i]);
-        simd__int c2 = simd__loadu_ix((simd__int*)&in2[i]);
+    for (int32_t i = 0; i < w * h; i += SINM_SIMD_WIDTH)
+    {
+        simd__int c1 = simd__loadu_ix((simd__int *)&in1[i]);
+        simd__int c2 = simd__loadu_ix((simd__int *)&in2[i]);
 
         simd__int r1 = simd__and_ix(c1, ff);
         simd__int r2 = simd__and_ix(c2, ff);
@@ -531,69 +598,89 @@ SINM_DEF void sinm__composite_simd(const uint32_t* in1, const uint32_t* in2, uin
         simd__int g = simd__srli_epi32(simd__add_epi32(g1, g2), 1);
         simd__int b = simd__srli_epi32(simd__add_epi32(b1, b2), 1);
 
-        simd__int final = simd__or_ix(simd__or_ix(simd__or_ix(r, simd__slli_epi32(g, 8)), simd__slli_epi32(b, 16)), alpha);
+        simd__int final =
+            simd__or_ix(simd__or_ix(simd__or_ix(r, simd__slli_epi32(g, 8)),
+                                    simd__slli_epi32(b, 16)),
+                        alpha);
 
-        simd__storeu_ix((simd__int*)&out[i], final);
+        simd__storeu_ix((simd__int *)&out[i], final);
     }
 }
 
-SINM_DEF sinm__inline void
-sinm_composite(const uint32_t* in1, const uint32_t* in2, uint32_t* out, int32_t w, int32_t h)
+SINM_DEF sinm__inline void sinm_composite(const uint32_t *in1,
+                                          const uint32_t *in2, uint32_t *out,
+                                          int32_t w, int32_t h)
 {
-    if ((w * h) % SINM_SIMD_WIDTH == 0) {
+    if ((w * h) % SINM_SIMD_WIDTH == 0)
+    {
         sinm__composite_simd(in1, in2, out, w, h);
-    } else {
+    }
+    else
+    {
         sinm__composite(in1, in2, out, w, h);
     }
 }
 
-SINM_DEF sinm__inline uint32_t*
-sinm_composite_alloc(const uint32_t* in1, const uint32_t* in2, int32_t w, int32_t h)
+SINM_DEF sinm__inline uint32_t *sinm_composite_alloc(const uint32_t *in1,
+                                                     const uint32_t *in2,
+                                                     int32_t w, int32_t h)
 {
-    uint32_t* result = (uint32_t*)malloc(sizeof(uint32_t) * w * h);
-    if (result) {
+    uint32_t *result = (uint32_t *)malloc(sizeof(uint32_t) * w * h);
+    if (result)
+    {
         sinm_composite(in1, in2, result, w, h);
     }
     return result;
 }
 
-static void
-sinm__greyscale(const uint32_t* in, uint32_t* out, int32_t w, int32_t h, sinm_greyscale_type type)
+static void sinm__greyscale(const uint32_t *in, uint32_t *out, int32_t w,
+                            int32_t h, sinm_greyscale_type type)
 {
     int32_t count = w * h;
-    switch (type) {
-    case sinm_greyscale_lightness: {
-        for (int32_t i = 0; i < count; ++i) {
-            uint32_t c = in[i];
-            uint32_t l = sinm__lightness_average(c & 0xFFu, (c >> 8) & 0xFFu, (c >> 16) & 0xFFu);
-            out[i] = sinm__greyscale_from_byte(l);
+    switch (type)
+    {
+        case sinm_greyscale_lightness: {
+            for (int32_t i = 0; i < count; ++i)
+            {
+                uint32_t c = in[i];
+                uint32_t l = sinm__lightness_average(
+                    c & 0xFFu, (c >> 8) & 0xFFu, (c >> 16) & 0xFFu);
+                out[i] = sinm__greyscale_from_byte(l);
+            }
         }
-    } break;
+        break;
 
-    case sinm_greyscale_average: {
-        for (int32_t i = 0; i < count; ++i) {
-            uint32_t c = in[i];
-            uint32_t l = sinm__average(c & 0xFFu, (c >> 8) & 0xFFu, (c >> 16) & 0xFFu);
-            out[i] = sinm__greyscale_from_byte(l);
+        case sinm_greyscale_average: {
+            for (int32_t i = 0; i < count; ++i)
+            {
+                uint32_t c = in[i];
+                uint32_t l = sinm__average(c & 0xFFu, (c >> 8) & 0xFFu,
+                                           (c >> 16) & 0xFFu);
+                out[i] = sinm__greyscale_from_byte(l);
+            }
         }
-    } break;
+        break;
 
-    case sinm_greyscale_luminance: {
-        for (int32_t i = 0; i < count; ++i) {
-            uint32_t c = in[i];
-            uint32_t l = sinm__luminance(c & 0xFFu, (c >> 8) & 0xFFu, (c >> 16) & 0xFFu);
-            out[i] = sinm__greyscale_from_byte(l);
+        case sinm_greyscale_luminance: {
+            for (int32_t i = 0; i < count; ++i)
+            {
+                uint32_t c = in[i];
+                uint32_t l = sinm__luminance(c & 0xFFu, (c >> 8) & 0xFFu,
+                                             (c >> 16) & 0xFFu);
+                out[i] = sinm__greyscale_from_byte(l);
+            }
         }
-    } break;
-    default: {
-        // INVALID OPTION
-        assert(0);
-    } break;
+        break;
+        default: {
+            // INVALID OPTION
+            assert(0);
+        }
+        break;
     }
 }
 
-static void
-sinm__simd_greyscale(const uint32_t* in, uint32_t* out, int32_t w, int32_t h, sinm_greyscale_type type)
+static void sinm__simd_greyscale(const uint32_t *in, uint32_t *out, int32_t w,
+                                 int32_t h, sinm_greyscale_type type)
 {
     simd__int redMask = simd__set1_epi32(0xFF);
     simd__int greenMask = simd__set1_epi32(0xFF00u);
@@ -602,110 +689,138 @@ sinm__simd_greyscale(const uint32_t* in, uint32_t* out, int32_t w, int32_t h, si
 
     int32_t count = w * h;
 
-    switch (type) {
-    case sinm_greyscale_lightness: {
-        for (int32_t i = 0; i < count; i += SINM_SIMD_WIDTH) {
-            simd__int c = simd__loadu_ix((simd__int*)&in[i]);
-            simd__int r = simd__and_ix(c, redMask);
-            simd__int g = simd__srli_epi32(simd__and_ix(c, greenMask), 8);
-            simd__int b = simd__srli_epi32(simd__and_ix(c, blueMask), 16);
+    switch (type)
+    {
+        case sinm_greyscale_lightness: {
+            for (int32_t i = 0; i < count; i += SINM_SIMD_WIDTH)
+            {
+                simd__int c = simd__loadu_ix((simd__int *)&in[i]);
+                simd__int r = simd__and_ix(c, redMask);
+                simd__int g = simd__srli_epi32(simd__and_ix(c, greenMask), 8);
+                simd__int b = simd__srli_epi32(simd__and_ix(c, blueMask), 16);
 
-            simd__int max = simd__max_epi32(simd__max_epi32(r, g), b);
-            simd__int min = simd__min_epi32(simd__min_epi32(r, g), b);
-            simd__int l = simd__srli_epi32(simd__add_epi32(min, max), 1);
+                simd__int max = simd__max_epi32(simd__max_epi32(r, g), b);
+                simd__int min = simd__min_epi32(simd__min_epi32(r, g), b);
+                simd__int l = simd__srli_epi32(simd__add_epi32(min, max), 1);
 
-            l = simd__or_ix(simd__slli_epi32(l, 16),
-                simd__or_ix(simd__slli_epi32(l, 8),
-                    simd__or_ix(l, alpha)));
+                l = simd__or_ix(
+                    simd__slli_epi32(l, 16),
+                    simd__or_ix(simd__slli_epi32(l, 8), simd__or_ix(l, alpha)));
 
-            simd__storeu_ix((simd__int*)&out[i], l);
+                simd__storeu_ix((simd__int *)&out[i], l);
+            }
         }
-    } break;
+        break;
 
-    case sinm_greyscale_average: {
-        simd__float inverse3 = simd__set1_ps(1.0f / 3.0f);
-        for (int32_t i = 0; i < count; i += SINM_SIMD_WIDTH) {
-            simd__int c = simd__loadu_ix((simd__int*)&in[i]);
-            simd__int r = simd__and_ix(c, redMask);
-            simd__int g = simd__srli_epi32(simd__and_ix(c, greenMask), 8);
-            simd__int b = simd__srli_epi32(simd__and_ix(c, blueMask), 16);
+        case sinm_greyscale_average: {
+            simd__float inverse3 = simd__set1_ps(1.0f / 3.0f);
+            for (int32_t i = 0; i < count; i += SINM_SIMD_WIDTH)
+            {
+                simd__int c = simd__loadu_ix((simd__int *)&in[i]);
+                simd__int r = simd__and_ix(c, redMask);
+                simd__int g = simd__srli_epi32(simd__and_ix(c, greenMask), 8);
+                simd__int b = simd__srli_epi32(simd__and_ix(c, blueMask), 16);
 
-            simd__int s = simd__add_epi32(simd__add_epi32(r, g), b);
-            s = simd__cvtps_epi32(simd__mul_ps(simd__cvtepi32_ps(s), inverse3));
-            s = simd__or_ix(simd__slli_epi32(s, 16),
-                simd__or_ix(simd__slli_epi32(s, 8),
-                    simd__or_ix(s, alpha)));
+                simd__int s = simd__add_epi32(simd__add_epi32(r, g), b);
+                s = simd__cvtps_epi32(
+                    simd__mul_ps(simd__cvtepi32_ps(s), inverse3));
+                s = simd__or_ix(
+                    simd__slli_epi32(s, 16),
+                    simd__or_ix(simd__slli_epi32(s, 8), simd__or_ix(s, alpha)));
 
-            simd__storeu_ix((simd__int*)&out[i], s);
+                simd__storeu_ix((simd__int *)&out[i], s);
+            }
         }
-    } break;
+        break;
 
-    case sinm_greyscale_luminance: {
-        simd__float rBias = simd__set1_ps(0.21f);
-        simd__float gBias = simd__set1_ps(0.72f);
-        simd__float bBias = simd__set1_ps(0.07f);
+        case sinm_greyscale_luminance: {
+            simd__float rBias = simd__set1_ps(0.21f);
+            simd__float gBias = simd__set1_ps(0.72f);
+            simd__float bBias = simd__set1_ps(0.07f);
 
-        for (int32_t i = 0; i < count; i += SINM_SIMD_WIDTH) {
-            simd__int c = simd__loadu_ix((simd__int*)&in[i]);
-            simd__float r = simd__cvtepi32_ps(simd__and_ix(c, redMask));
-            simd__float g = simd__cvtepi32_ps(simd__srli_epi32(simd__and_ix(c, greenMask), 8));
-            simd__float b = simd__cvtepi32_ps(simd__srli_epi32(simd__and_ix(c, blueMask), 16));
+            for (int32_t i = 0; i < count; i += SINM_SIMD_WIDTH)
+            {
+                simd__int c = simd__loadu_ix((simd__int *)&in[i]);
+                simd__float r = simd__cvtepi32_ps(simd__and_ix(c, redMask));
+                simd__float g = simd__cvtepi32_ps(
+                    simd__srli_epi32(simd__and_ix(c, greenMask), 8));
+                simd__float b = simd__cvtepi32_ps(
+                    simd__srli_epi32(simd__and_ix(c, blueMask), 16));
 
-            r = simd__mul_ps(r, rBias);
-            g = simd__mul_ps(g, gBias);
-            b = simd__mul_ps(b, bBias);
+                r = simd__mul_ps(r, rBias);
+                g = simd__mul_ps(g, gBias);
+                b = simd__mul_ps(b, bBias);
 
-            simd__int sum = simd__cvtps_epi32(simd__add_ps(r, simd__add_ps(g, b)));
-            sum = simd__or_ix(simd__slli_epi32(sum, 16),
-                simd__or_ix(simd__slli_epi32(sum, 8),
-                    simd__or_ix(sum, alpha)));
+                simd__int sum =
+                    simd__cvtps_epi32(simd__add_ps(r, simd__add_ps(g, b)));
+                sum = simd__or_ix(simd__slli_epi32(sum, 16),
+                                  simd__or_ix(simd__slli_epi32(sum, 8),
+                                              simd__or_ix(sum, alpha)));
 
-            simd__storeu_ix((simd__int*)&out[i], sum);
+                simd__storeu_ix((simd__int *)&out[i], sum);
+            }
         }
-    } break;
-    default: {
-        // INVALID OPTION
-        assert(0);
-    } break;
+        break;
+        default: {
+            // INVALID OPTION
+            assert(0);
+        }
+        break;
     }
 }
 
-SINM_DEF void
-sinm_greyscale(const uint32_t* in, uint32_t* out, int32_t w, int32_t h, sinm_greyscale_type type)
+SINM_DEF void sinm_greyscale(const uint32_t *in, uint32_t *out, int32_t w,
+                             int32_t h, sinm_greyscale_type type)
 {
     int32_t count = w * h;
-    if (count % SINM_SIMD_WIDTH == 0) {
+    if (count % SINM_SIMD_WIDTH == 0)
+    {
         sinm__simd_greyscale(in, out, w, h, type);
-    } else {
+    }
+    else
+    {
         sinm__greyscale(in, out, w, h, type);
     }
 }
 
-SINM_DEF int
-sinm_normal_map_buffer(const uint32_t* in, uint32_t* out, int32_t w, int32_t h, float scale, float blurRadius, sinm_greyscale_type greyscaleType, int flipY)
+SINM_DEF int sinm_normal_map_buffer(const uint32_t *in, uint32_t *out,
+                                    int32_t w, int32_t h, float scale,
+                                    float blurRadius,
+                                    sinm_greyscale_type greyscaleType,
+                                    int flipY)
 {
     assert(w > 0 && h > 0);
-    uint32_t* intermediate = (uint32_t*)malloc(w * h * sizeof(uint32_t));
+    uint32_t *intermediate = (uint32_t *)malloc(w * h * sizeof(uint32_t));
 
-    if (intermediate) {
-        if (greyscaleType != sinm_greyscale_none) {
+    if (intermediate)
+    {
+        if (greyscaleType != sinm_greyscale_none)
+        {
             sinm_greyscale(in, out, w, h, greyscaleType);
-        } else {
+        }
+        else
+        {
             memcpy(out, in, w * h * sizeof(uint32_t));
         }
 
         float radius = sinm__min(sinm__min(w, h), sinm__max(0, blurRadius));
-        if (radius >= 1.0f) {
+        if (radius >= 1.0f)
+        {
             sinm__gaussian_box(out, intermediate, w, h, radius);
-        } else {
+        }
+        else
+        {
             memcpy(intermediate, out, w * h * sizeof(uint32_t));
         }
 
         // TODO: support using simd on non power of 2 images
         int32_t count = w * h;
-        if (count % SINM_SIMD_WIDTH == 0) {
+        if (count % SINM_SIMD_WIDTH == 0)
+        {
             sinm__sobel3x3_normals_simd(intermediate, out, w, h, scale, flipY);
-        } else {
+        }
+        else
+        {
             sinm__sobel3x3_normals(intermediate, out, w, h, scale, flipY);
         }
 
@@ -715,12 +830,16 @@ sinm_normal_map_buffer(const uint32_t* in, uint32_t* out, int32_t w, int32_t h, 
     return 0;
 }
 
-SINM_DEF sinm__inline uint32_t*
-sinm_normal_map(const uint32_t* in, int32_t w, int32_t h, float scale, float blurRadius, sinm_greyscale_type greyscaleType, int flipY)
+SINM_DEF sinm__inline uint32_t *sinm_normal_map(
+    const uint32_t *in, int32_t w, int32_t h, float scale, float blurRadius,
+    sinm_greyscale_type greyscaleType, int flipY)
 {
-    uint32_t* result = (uint32_t*)malloc(w * h * sizeof(uint32_t));
-    if (result) {
-        if (!sinm_normal_map_buffer(in, result, w, h, scale, blurRadius, greyscaleType, flipY)) {
+    uint32_t *result = (uint32_t *)malloc(w * h * sizeof(uint32_t));
+    if (result)
+    {
+        if (!sinm_normal_map_buffer(in, result, w, h, scale, blurRadius,
+                                    greyscaleType, flipY))
+        {
             free(result);
             return NULL;
         }
@@ -729,21 +848,21 @@ sinm_normal_map(const uint32_t* in, int32_t w, int32_t h, float scale, float blu
 }
 
 #endif // ifndef SI_NORMALMAP_IMPLEMENTATION
-/*
-Copyright (c) 2019 Jeremy Montgomery
-Permission is hereby granted, free of charge, to any person obtaining a copy of
-this software and associated documentation files (the "Software"), to deal in
-the Software without restriction, including without limitation the rights to
-use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies
-of the Software, and to permit persons to whom the Software is furnished to do
-so, subject to the following conditions:
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE.
-*/
+       /*
+       Copyright (c) 2019 Jeremy Montgomery
+       Permission is hereby granted, free of charge, to any person obtaining a copy of
+       this software and associated documentation files (the "Software"), to deal in
+       the Software without restriction, including without limitation the rights to
+       use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies
+       of the Software, and to permit persons to whom the Software is furnished to do
+       so, subject to the following conditions:
+       The above copyright notice and this permission notice shall be included in all
+       copies or substantial portions of the Software.
+       THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+       IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+       FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+       AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+       LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+       OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+       SOFTWARE.
+       */
