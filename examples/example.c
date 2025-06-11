@@ -2,6 +2,8 @@
 #define SI_NORMALMAP_STATIC
 #include "si_normalmap.h"
 
+//stb_image and stb_image_write not included in this repo
+//get them from here https://github.com/nothings/stb
 #define STB_IMAGE_IMPLEMENTATION
 #include "stb_image.h"
 
