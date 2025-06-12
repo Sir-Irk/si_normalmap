@@ -454,7 +454,7 @@ sinm__sobel3x3_normals_simd(const uint32_t *in, uint32_t *out, int32_t w, int32_
                 simd__float y = simd__loadu_ps(yBatch);
                 simd__float z = simd__set1_ps(255.0f);
 
-                x = simd__mul_ps(x, simdScale));
+                x = simd__mul_ps(x, simdScale);
                 y = simd__mul_ps(simd__mul_ps(y, simdScale), simdFlipY);
 
                 // normalize
