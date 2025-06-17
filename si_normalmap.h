@@ -27,7 +27,7 @@
 #ifdef SI_NORMALMAP_STATIC
 #define SINM_DEF static
 #else
-#define SINM_DEF extern
+#define SINM_DEF
 #endif
 #endif
 
