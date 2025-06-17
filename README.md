@@ -4,7 +4,7 @@ A very simple normal map generator written as a single header library.
 Features:
  - Convert color buffer to greyscale using either lightness, average or luminance methods
  - Convert greyscale buffer to a normal map with gaussian blur pre-filtering
- - Uses AVX/SSE for images with power of 2 dimensions(TODO: make this more flexible for other dimensions)
+
 
 TODO: add gpu support using Opengl(this is a work in progress).
  
