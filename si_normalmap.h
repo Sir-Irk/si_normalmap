@@ -424,7 +424,7 @@ sinm__sobel3x3_normals_simd(const uint32_t *in, uint32_t *out, int32_t w, int32_
 
     int32_t remainder = w % SINM_SIMD_WIDTH;
     for (int32_t yIter = 0; yIter < h; ++yIter) {
-        for (int32_t xIter = 0; xIter < w - remainder; ++xIter) {
+        for (int32_t xIter = 0; xIter < w - remainder - 1; ++xIter) {
             __m128 xmag = _mm_set1_ps(0.0f);
             __m128 ymag = _mm_set1_ps(0.0f);
 
