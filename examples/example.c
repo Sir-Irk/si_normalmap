@@ -1,6 +1,6 @@
 #define SI_NORMALMAP_IMPLEMENTATION
 #define SI_NORMALMAP_STATIC
-#include "si_normalmap.h"
+#include "../si_normalmap.h"
 
 // stb_image and stb_image_write not included in this repo
 // get them from here https://github.com/nothings/stb
@@ -14,7 +14,7 @@ int
 main(void)
 {
     int x, y;
-    uint32_t *pixels = (uint32_t *)stbi_load("albedo.png", &x, &y, NULL, 4);
+    uint32_t *pixels = (uint32_t *)stbi_load("plasma_214.png", &x, &y, NULL, 4);
     assert(pixels);
 
     // Make 2 normal maps at different blur radii and strength and composite them
