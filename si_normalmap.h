@@ -290,15 +290,15 @@ sinm__box_blur_h(uint32_t *in, uint32_t *out, int32_t w, int32_t h, float r)
         }
         for (int j = 0; j <= r; ++j) {
             sum += (in[ri++] & 0xFFu) - fv;
-            out[oi++] = sinm__greyscale_from_byte((uint8_t)(sum * invR));
+            out[oi++] = sinm__greyscale_from_byte((uint8_t)fmin(255.0f, sum * invR));
         }
         for (int j = (int)r + 1; j < (w - r); ++j) {
             sum += (in[ri++] & 0xFFu) - (in[li++] & 0xFFu);
-            out[oi++] = sinm__greyscale_from_byte((uint8_t)(sum * invR));
+            out[oi++] = sinm__greyscale_from_byte((uint8_t)fmin(255.0f, sum * invR));
         }
         for (int j = (int)(w - r); j < w; ++j) {
             sum += lv - (in[li++] & 0xFFu);
-            out[oi++] = sinm__greyscale_from_byte((uint8_t)(sum * invR));
+            out[oi++] = sinm__greyscale_from_byte((uint8_t)fmin(255.0f, sum * invR));
         }
     }
 }
@@ -320,20 +320,20 @@ sinm__box_blur_v(uint32_t *in, uint32_t *out, int32_t w, int32_t h, float r)
         }
         for (int j = 0; j <= r; j++) {
             sum += (in[ri] & 0xFFu) - fv;
-            out[oi] = sinm__greyscale_from_byte((uint8_t)(sum * invR));
+            out[oi] = sinm__greyscale_from_byte((uint8_t)fmin(255.0f, sum * invR));
             ri += w;
             oi += w;
         }
         for (int j = (int)(r + 1); j < h - r; j++) {
             sum += (in[ri] & 0xFFu) - (in[li] & 0xFFu);
-            out[oi] = sinm__greyscale_from_byte((uint8_t)(sum * invR));
+            out[oi] = sinm__greyscale_from_byte((uint8_t)fmin(255.0f, sum * invR));
             li += w;
             ri += w;
             oi += w;
         }
         for (int j = (int)(h - r); j < h; j++) {
             sum += lv - (in[li] & 0xFFu);
-            out[oi] = sinm__greyscale_from_byte((uint8_t)(sum * invR));
+            out[oi] = sinm__greyscale_from_byte((uint8_t)fmin(255.0f, sum * invR));
             li += w;
             oi += w;
         }
@@ -424,7 +424,7 @@ sinm__sobel3x3_normals_simd(const uint32_t *in, uint32_t *out, int32_t w, int32_
 
     int32_t remainder = w % SINM_SIMD_WIDTH;
     for (int32_t yIter = 0; yIter < h; ++yIter) {
-        for (int32_t xIter = 0; xIter < w - remainder - 1; ++xIter) {
+        for (int32_t xIter = 0; xIter < w - 4; ++xIter) {
             __m128 xmag = _mm_set1_ps(0.0f);
             __m128 ymag = _mm_set1_ps(0.0f);
 
@@ -471,7 +471,7 @@ sinm__sobel3x3_normals_simd(const uint32_t *in, uint32_t *out, int32_t w, int32_
         }
     }
 
-    sinm__sobel3x3_normals_row_range(in, out, w - remainder, w, w, h, scale, flipY);
+    sinm__sobel3x3_normals_row_range(in, out, w - remainder - 8, w, w, h, scale, flipY);
 }
 
 SINM_DEF void
