@@ -47,6 +47,12 @@
 #define sinm__aligned_var(type, bytes) type __attribute__((aligned(bytes)))
 #endif
 
+#ifndef SINM_USE_SIMD
+#if defined(__x86_64__) || defined(_M_X64) || defined(__i386__) || defined(_M_IX86)
+#define SINM_USE_SIMD 1
+#endif
+#endif
+
 #ifndef SINM_TYPES
 #define SINM_TYPES
 typedef enum
@@ -96,12 +102,15 @@ sinm_composite(const uint32_t *in1, const uint32_t *in2, uint32_t *out, int32_t 
 
 #else // SI_NORMALMAP_IMPLEMENTATION
 
+#if SINM_USE_SIMD
 #ifdef _MSC_VER
 #include <intrin.h>
 #else
 #include <x86intrin.h>
 #endif
+#endif
 
+#if SINM_USE_SIMD
 #ifdef __AVX__
 #define SINM_SIMD_ALIGNMENT 32
 #define simd_prefix_float(name) _mm256_##name
@@ -112,6 +121,8 @@ sinm_composite(const uint32_t *in1, const uint32_t *in2, uint32_t *out, int32_t 
 #define simd__or_ix(a, b) _mm256_or_si256(a, b)
 #define simd__loadu_ix(a) _mm256_loadu_si256(a)
 #define simd__storeu_ix(ptr, v) _mm256_storeu_si256(ptr, v)
+#define simd__setzero_ix() _mm256_setzero_si256()
+#define simd__setzero_ps() _mm256_setzero_ps()
 #else
 #define simd_prefix_float(name) _mm_##name
 #define SINM_SIMD_ALIGNMENT 16
@@ -122,16 +133,31 @@ sinm_composite(const uint32_t *in1, const uint32_t *in2, uint32_t *out, int32_t 
 #define simd__or_ix(a, b) _mm_or_si128(a, b)
 #define simd__loadu_ix(a) _mm_loadu_si128(a)
 #define simd__storeu_ix(ptr, v) _mm_storeu_si128(ptr, v)
+#define simd__setzero_ix() _mm_setzero_si128()
+#define simd__setzero_ps() _mm_setzero_ps()
 #endif // __AVX__
 
 #define simd__set1_epi32(a) simd_prefix_float(set1_epi32(a))
-#define simd__setzero_ix() simd_prefix_float(setzero_si256())
-#define simd__setzero_ps() simd_prefix_float(setzero_ps())
 #define simd__andnot_ps(a, b) simd_prefix_float(andnot_ps(a, b))
 #define simd__add_epi32(a, b) simd_prefix_float(add_epi32(a, b))
 #define simd__sub_epi32(a, b) simd_prefix_float(sub_epi32(a, b))
+
+#if defined(__AVX__) || defined(__SSE4_1__)
 #define simd__max_epi32(a, b) simd_prefix_float(max_epi32(a, b))
 #define simd__min_epi32(a, b) simd_prefix_float(min_epi32(a, b))
+#else
+static sinm__inline __m128i sinm__sse2_max_epi32(__m128i a, __m128i b) {
+    __m128i mask = _mm_cmpgt_epi32(a, b);
+    return _mm_or_si128(_mm_and_si128(mask, a), _mm_andnot_si128(mask, b));
+}
+static sinm__inline __m128i sinm__sse2_min_epi32(__m128i a, __m128i b) {
+    __m128i mask = _mm_cmpgt_epi32(b, a);
+    return _mm_or_si128(_mm_and_si128(mask, a), _mm_andnot_si128(mask, b));
+}
+#define simd__max_epi32(a, b) sinm__sse2_max_epi32(a, b)
+#define simd__min_epi32(a, b) sinm__sse2_min_epi32(a, b)
+#endif
+
 #define simd__loadu_ps(a) simd_prefix_float(loadu_ps(a))
 #define simd__srli_epi32(a, i) simd_prefix_float(srli_epi32(a, i))
 #define simd__slli_epi32(a, i) simd_prefix_float(slli_epi32(a, i))
@@ -145,6 +171,7 @@ sinm_composite(const uint32_t *in1, const uint32_t *in2, uint32_t *out, int32_t 
 #define simd__div_ps(a, b) simd_prefix_float(div_ps(a, b))
 #define simd__hadd_ps(a, b) simd_prefix_float(hadd_ps(a, b))
 #define simd__cvtss_f32(a) simd_prefix_float(cvtss_f32(a))
+#endif // SINM_USE_SIMD
 
 #define sinm__min(a, b) ((a) < (b) ? (a) : (b))
 #define sinm__max(a, b) ((a) > (b) ? (a) : (b))
@@ -165,11 +192,13 @@ sinm__length(float x, float y, float z)
     return sqrtf(x * x + y * y + z * z);
 }
 
+#if SINM_USE_SIMD
 sinm__inline static simd__float
 sinm__length_simd(simd__float x, simd__float y, simd__float z)
 {
     return simd__sqrt_ps(simd__add_ps(simd__add_ps(simd__mul_ps(x, x), simd__mul_ps(y, y)), simd__mul_ps(z, z)));
 }
+#endif
 
 sinm__inline static sinm__v3
 sinm__normalized(float x, float y, float z)
@@ -222,6 +251,7 @@ sinm__rgba_to_v3(uint32_t c)
     return result;
 }
 
+#if SINM_USE_SIMD
 static sinm__inline void
 sinm__rgba_to_v3_simd(simd__int c, simd__float *x, simd__float *y, simd__float *z)
 {
@@ -231,6 +261,7 @@ sinm__rgba_to_v3_simd(simd__int c, simd__float *x, simd__float *y, simd__float *
     *y = simd__cvtepi32_ps(simd__sub_epi32(simd__and_ix(simd__srli_epi32(c, 8), ff), v127));
     *z = simd__cvtepi32_ps(simd__sub_epi32(simd__and_ix(simd__srli_epi32(c, 16), ff), v127));
 }
+#endif
 
 static sinm__inline uint32_t
 sinm__unit_vector_to_rgba(sinm__v3 v)
@@ -241,6 +272,7 @@ sinm__unit_vector_to_rgba(sinm__v3 v)
     return r | g << 8u | b << 16u | 255u << 24u;
 }
 
+#if SINM_USE_SIMD
 static sinm__inline simd__int
 sinm__v3_to_rgba_simd(simd__float x, simd__float y, simd__float z)
 {
@@ -253,6 +285,7 @@ sinm__v3_to_rgba_simd(simd__float x, simd__float y, simd__float z)
     simd__int c = simd__or_ix(simd__or_ix(simd__or_ix(r, simd__slli_epi32(g, 8)), simd__slli_epi32(b, 16)), a);
     return c;
 }
+#endif
 
 SINM_DEF void
 sinm__generate_gaussian_box(float *outBoxes, int32_t n, float sigma)
@@ -396,6 +429,7 @@ sinm__sobel3x3_normals(const uint32_t *in, uint32_t *out, int32_t w, int32_t h, 
     sinm__sobel3x3_normals_row_range(in, out, 0, w, w, h, scale, flipY);
 }
 
+#if SINM_USE_SIMD
 static void
 sinm__sobel3x3_normals_simd(const uint32_t *in, uint32_t *out, int32_t w, int32_t h, float scale, int flipY)
 {
@@ -473,6 +507,7 @@ sinm__sobel3x3_normals_simd(const uint32_t *in, uint32_t *out, int32_t w, int32_
 
     sinm__sobel3x3_normals_row_range(in, out, w - remainder - 8, w, w, h, scale, flipY);
 }
+#endif
 
 SINM_DEF void
 sinm__normalize(uint32_t *in, int32_t w, int32_t h, float scale, int flipY)
@@ -485,6 +520,7 @@ sinm__normalize(uint32_t *in, int32_t w, int32_t h, float scale, int flipY)
     }
 }
 
+#if SINM_USE_SIMD
 SINM_DEF void
 sinm__normalize_simd(uint32_t *in, int32_t w, int32_t h, float scale, int flipY)
 {
@@ -505,11 +541,16 @@ sinm__normalize_simd(uint32_t *in, int32_t w, int32_t h, float scale, int flipY)
 
     sinm__normalize(offset_in, 1, remainder, scale, flipY);
 }
+#endif
 
 SINM_DEF sinm__inline void
 sinm_normalize(uint32_t *in, int32_t w, int32_t h, float scale, int flipY)
 {
+#if SINM_USE_SIMD
     sinm__normalize_simd(in, w, h, scale, flipY);
+#else
+    sinm__normalize(in, w, h, scale, flipY);
+#endif
 }
 
 SINM_DEF void
@@ -531,6 +572,7 @@ sinm__composite(const uint32_t *in1, const uint32_t *in2, uint32_t *out, int32_t
     }
 }
 
+#if SINM_USE_SIMD
 SINM_DEF void
 sinm__composite_simd(const uint32_t *in1, const uint32_t *in2, uint32_t *out, int32_t w, int32_t h)
 {
@@ -563,11 +605,16 @@ sinm__composite_simd(const uint32_t *in1, const uint32_t *in2, uint32_t *out, in
 
     sinm__composite(offset_in1, offset_in2, offset_out, 1, remainder);
 }
+#endif
 
 SINM_DEF sinm__inline void
 sinm_composite(const uint32_t *in1, const uint32_t *in2, uint32_t *out, int32_t w, int32_t h)
 {
+#if SINM_USE_SIMD
     sinm__composite_simd(in1, in2, out, w, h);
+#else
+    sinm__composite(in1, in2, out, w, h);
+#endif
 }
 
 SINM_DEF sinm__inline uint32_t *
@@ -615,6 +662,7 @@ sinm__greyscale(const uint32_t *in, uint32_t *out, int32_t w, int32_t h, sinm_gr
     }
 }
 
+#if SINM_USE_SIMD
 static void
 sinm__simd_greyscale(const uint32_t *in, uint32_t *out, int32_t w, int32_t h, sinm_greyscale_type type)
 {
@@ -694,12 +742,16 @@ sinm__simd_greyscale(const uint32_t *in, uint32_t *out, int32_t w, int32_t h, si
         sinm__greyscale(offset_in, offset_out, 1, remainder, type);
     }
 }
+#endif
 
 SINM_DEF void
 sinm_greyscale(const uint32_t *in, uint32_t *out, int32_t w, int32_t h, sinm_greyscale_type type)
 {
-    int32_t count = w * h;
+#if SINM_USE_SIMD
     sinm__simd_greyscale(in, out, w, h, type);
+#else
+    sinm__greyscale(in, out, w, h, type);
+#endif
 }
 
 SINM_DEF int
@@ -729,7 +781,11 @@ sinm_normal_map_buffer(const uint32_t *in,
             memcpy(intermediate, out, w * h * sizeof(uint32_t));
         }
 
+#if SINM_USE_SIMD
         sinm__sobel3x3_normals_simd(intermediate, out, w, h, scale, flipY);
+#else
+        sinm__sobel3x3_normals(intermediate, out, w, h, scale, flipY);
+#endif
 
         free(intermediate);
         return 1;
