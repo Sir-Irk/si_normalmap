@@ -70,29 +70,26 @@ sinm_greyscale(const uint32_t *in, uint32_t *out, int32_t w, int32_t h, sinm_gre
 
 SINM_DEF uint32_t *
 sinm_normal_map(const uint32_t *in, int32_t w, int32_t h, float scale, float blurRadius, sinm_greyscale_type greyscaleType, int flipY);
-// Converts input buffer to a normal map and returns a pointer to it.
-//   "scale" controls the intensity of the result
-//   "blurRadius" controls the radius for gaussian blurring before generating
-//   normals "greyscaleType" specifies the conversion method from color to
-//   greyscale before
-//    generating the normal map. This step is skipped when using
-//    sinm_greyscale_none.
+// Allocates a new buffer and generates the normal map
+// "scale" is multiplied with the normal which "intensifies" the angle.
+// "blurRadius" controls the radius for gaussian blurring before generating normals
+// "greyscaleType" specifies the conversion method from color to greyscale before generating the normal map. This step is skipped when using "sinm_greyscale_none".
 
 SINM_DEF int
-sinm_normal_map_buffer(const uint32_t *in,
-                       uint32_t *out,
-                       int32_t w,
-                       int32_t h,
-                       float scale,
-                       float blurRadius,
-                       sinm_greyscale_type greyscaleType,
-                       int flipY);
+sinm_normal_map_buffer(const uint32_t *in, uint32_t *out, int32_t w, int32_t h, float scale, float blurRadius, sinm_greyscale_type greyscaleType, int flipY);
+// Generates normal map. Takes a pre-allocated buffer for output
+
 SINM_DEF sinm__inline void
 sinm_normalize(uint32_t *in, int32_t w, int32_t h, float scale, int flipY);
+// Normalize the values of "in" to a length of 1
+
 SINM_DEF sinm__inline uint32_t *
 sinm_composite_alloc(const uint32_t *in1, const uint32_t *in2, int32_t w, int32_t h);
+// combine two images by averaging their color values. Returns the result in a newly allocated buffer
+
 SINM_DEF sinm__inline void
 sinm_composite(const uint32_t *in1, const uint32_t *in2, uint32_t *out, int32_t w, int32_t h);
+// combine two images by averaging their color values. Uses a pre-allocated buffer for the result
 
 #else // SI_NORMALMAP_IMPLEMENTATION
 
