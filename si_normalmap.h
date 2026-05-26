@@ -5,14 +5,12 @@
  *
  * Basic use:
  *     #define SI_NORMALMAP_IMPLEMENTATION before including this file to get
-    *  Other defines you can use(before including this file):
-    *
-    *  #define SI_NORMALMAP_STATIC for static defintions(no extern functions)
-        the implementation. Otherwise this acts as a regualr header file
+ *      the implementation. Otherwise this acts as a regualr header file
+ *  Other defines you can use(before including this file):
+ *     #define SI_NORMALMAP_STATIC for static defintions(no extern functions)
 
  *     uint32_t *in = ...load pixels from image
- *     uint32_t *nm = sinm_normal_map(in, w, h, scale, blurRadius,
- greyscaleType);
+ *     uint32_t *nm = sinm_normal_map(in, w, h, scale, blurRadius, greyscaleType);
  *     ...write normal map to a file
  *
  ***************************************************************************/
