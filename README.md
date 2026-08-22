@@ -2,11 +2,15 @@
 A very simple normal map generator written as a single header library. 
 
 Features:
+ - Purely CPU driven. No GPU required(is that really a feature?) 
  - Convert color buffer to greyscale using either lightness, average or luminance methods
  - Convert greyscale buffer to a normal map with gaussian blur pre-filtering
+ - Combine normal maps using a basic composite function. Allows for layering high and low frequency details.
+ - A normilize function that runs over a buffer to normalize all values within(useful after making any kind of transformation after generation)
 
 
-TODO: add gpu support using Opengl(this is a work in progress).
+A GPU version will not be implemented on the main branch at this time. While it's relatively simple to do, I don't want the project tied to
+any specific graphics API's nor do I want to bloat the code with supporting multiple API's. 
  
 ### Interface
 
