@@ -9,7 +9,7 @@ Features:
  - A normalize function that runs over a buffer to normalize all values within(useful after making any kind of transformation after generation)
 
 
-A GPU version will not be implemented on the main branch at this time. While it's relatively simple to do, I don't want the project tied to
+A GPU version will not be implemented on the main branch at this time. I don't want the project tied to
 any specific graphics API's nor do I want to bloat the code with supporting multiple API's. 
  
 ### Interface
