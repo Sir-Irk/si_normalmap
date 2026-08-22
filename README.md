@@ -6,7 +6,7 @@ Features:
  - Convert color buffer to greyscale using either lightness, average or luminance methods
  - Convert greyscale buffer to a normal map with gaussian blur pre-filtering
  - Combine normal maps using a basic composite function. Allows for layering high and low frequency details.
- - A normilize function that runs over a buffer to normalize all values within(useful after making any kind of transformation after generation)
+ - A normalize function that runs over a buffer to normalize all values within(useful after making any kind of transformation after generation)
 
 
 A GPU version will not be implemented on the main branch at this time. While it's relatively simple to do, I don't want the project tied to
