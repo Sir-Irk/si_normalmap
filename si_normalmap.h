@@ -404,8 +404,8 @@ sinm__sobel3x3_normals_row_range(const uint32_t *in, uint32_t *out, int32_t xs, 
             float ymag = 0.0f;
             for (int32_t a = 0; a < 3; ++a) {
                 for (int32_t b = 0; b < 3; ++b) {
-                    int32_t xIdx = sinm__min(w - 1, sinm__max(1, x + b - 1));
-                    int32_t yIdx = sinm__min(h - 1, sinm__max(1, y + a - 1));
+                    int32_t xIdx = sinm__min(w - 1, sinm__max(0, x + b - 1));
+                    int32_t yIdx = sinm__min(h - 1, sinm__max(0, y + a - 1));
                     int32_t index = yIdx * w + xIdx;
                     uint32_t pixel = in[index] & 0xFFu;
                     xmag += pixel * xk[a][b];
@@ -458,8 +458,8 @@ sinm__sobel3x3_normals_simd(const uint32_t *in, uint32_t *out, int32_t w, int32_
             __m128 ymag = _mm_set1_ps(0.0f);
 
             for (int32_t a = 0; a < 3; ++a) {
-                int32_t xIdx = sinm__min(w - 1, sinm__max(1, xIter - 1));
-                int32_t yIdx = sinm__min(h - 1, sinm__max(1, yIter + a - 1));
+                int32_t xIdx = sinm__min(w - 1, sinm__max(0, xIter - 1));
+                int32_t yIdx = sinm__min(h - 1, sinm__max(0, yIter + a - 1));
                 int32_t index = yIdx * w + xIdx;
 
                 __m128i pixel = _mm_loadu_si128((__m128i *)&in[index]);
