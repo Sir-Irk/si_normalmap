@@ -500,7 +500,7 @@ sinm__sobel3x3_normals_simd(const uint32_t *in, uint32_t *out, int32_t w, int32_
         }
     }
 
-    sinm__sobel3x3_normals_row_range(in, out, w - remainder - 8, w, w, h, scale, flipY);
+    sinm__sobel3x3_normals_row_range(in, out, sinm__max(0, w - remainder - 8), w, w, h, scale, flipY);
 }
 #endif
 
