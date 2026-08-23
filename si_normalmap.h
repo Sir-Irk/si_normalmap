@@ -282,16 +282,16 @@ sinm__v3_to_rgba_simd(simd__float x, simd__float y, simd__float z)
 }
 #endif
 
-SINM_DEF void
-sinm__generate_gaussian_box(float *outBoxes, int32_t n, float sigma)
+SINM_DEF void 
+sinm__generate_gaussian_box(float *outBoxes, int32_t n, float radius)
 {
-    float wIdeal = sqrtf((12.0f * sigma * sigma / (float)n) + 1.0f);
+    float wIdeal = sqrtf((12.0f * radius * radius / (float)n) + 1.0f);
     int32_t wl = (int32_t)floorf(wIdeal);
     if (wl % 2 == 0)
         --wl;
     int32_t wu = wl + 2;
 
-    float mIdeal = (12.0f * sigma * sigma - n * wl * wl - 4.0f * n * wl - 3.0f * n) / (-4.0f * wl - 4.0f);
+    float mIdeal = (12.0f * radius * radius - n * wl * wl - 4.0f * n * wl - 3.0f * n) / (-4.0f * wl - 4.0f);
     int32_t m = (int32_t)roundf(mIdeal);
 
     for (int i = 0; i < n; ++i) {
@@ -371,6 +371,10 @@ sinm__box_blur_v(uint32_t *in, uint32_t *out, int32_t w, int32_t h, float r)
 SINM_DEF void
 sinm__gaussian_box(uint32_t *in, uint32_t *out, int32_t w, int32_t h, float r)
 {
+    //Ensure radius is not greater than half of width or height (whichever is smaller). 
+    //This is to prevent a buffer overrun/underrun during the blur passes.
+    r = fmax(fmin((float)(sinm__min(w, h) / 2), r), 0.0f);
+    
     float boxes[3];
     sinm__generate_gaussian_box(boxes, sizeof(boxes) / sizeof(boxes[0]), r);
 
